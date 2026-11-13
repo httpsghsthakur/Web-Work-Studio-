@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CENTRAL ERP COMMAND — Multi-School SaaS BI & Remote Administration</title>
+  
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chart.js 4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Custom Enterprise SaaS Design System -->
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="dark-mode">
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-badge"><i class="fa-solid fa-layer-group"></i></div>
+        <div>
+          <div style="font-weight: 700; font-size: 0.95rem; letter-spacing: -0.02em;">CENTRAL COMMAND</div>
+          <div style="font-size: 0.7rem; color: #64748b; font-weight: 500;">Multi-School ERP HQ</div>
+        </div>
+      </div>
+
+      <ul class="nav-list">
+        <li class="nav-section-title">CORE INTELLIGENCE</li>
+        <li class="nav-item active" data-tab="overview">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Overview</span>
+        </li>
+        <li class="nav-item" data-tab="schools">
+          <i class="fa-solid fa-school"></i>
+          <span>Schools</span>
+          <span class="nav-badge" id="schools-count-badge" style="background: rgba(37,99,235,0.2); color: #60a5fa;">6</span>
+        </li>
+        <li class="nav-item" data-tab="analytics">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Analytics</span>
+        </li>
+
+        <li class="nav-section-title">COMMERCIAL & BILLING</li>
+        <li class="nav-item" data-tab="subscriptions">
+          <i class="fa-solid fa-tags"></i>
+          <span>Subscriptions</span>
+        </li>
+        <li class="nav-item" data-tab="invoices">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          <span>Invoices & Payments</span>
+          <span class="nav-badge" id="overdue-count-badge">2</span>
+        </li>
+
+        <li class="nav-section-title">REMOTE OPERATIONS</li>
+        <li class="nav-item" data-tab="remote-controls">
+          <i class="fa-solid fa-tower-broadcast"></i>
+          <span>Remote Controls</span>
+        </li>
+        <li class="nav-item" data-tab="erp-monitoring">
+          <i class="fa-solid fa-heart-pulse"></i>
+          <span>ERP Monitoring</span>
+        </li>
+        <li class="nav-item" data-tab="security">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Security Logs</span>
+        </li>
+
+        <li class="nav-section-title">SYSTEM & AUTOMATION</li>
+        <li class="nav-item" data-tab="notifications">
+          <i class="fa-solid fa-bell"></i>
+          <span>Notifications</span>
+          <span class="nav-badge" id="notifications-count-badge">3</span>
+        </li>
+        <li class="nav-item" data-tab="reports">
+          <i class="fa-solid fa-file-export"></i>
+          <span>Reports</span>
+        </li>
+        <li class="nav-item" data-tab="integrations">
+          <i class="fa-solid fa-network-wired"></i>
+          <span>Integrations & SDK</span>
+        </li>
+        <li class="nav-item" data-tab="settings">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Settings</span>
+        </li>
+        <li class="nav-item" data-tab="admin">
+          <i class="fa-solid fa-user-shield"></i>
+          <span>Admin & Access</span>
+        </li>
+      </ul>
+
+      <!-- Operational Status Pill -->
+      <div style="padding: 0.9rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+          <span style="color: #64748b;">Central Gateway</span>
+          <span class="badge badge-healthy" style="font-size: 0.65rem;"><i class="fa-solid fa-circle" style="font-size: 6px;"></i> ONLINE</span>
+        </div>
+        <div style="color: #94a3b8; font-size: 0.7rem; font-family: monospace;">v2.4.0 • Node 24</div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-search">
+          <i class="fa-solid fa-magnifying-glass" style="color: var(--text-dim); font-size: 0.85rem;"></i>
+          <input type="text" id="global-search-input" placeholder="Search school, city, plan, or invoice...">
+        </div>
+
+        <div class="topbar-actions">
+          <!-- Theme Toggle -->
+          <button class="btn-icon" id="theme-toggle-btn" title="Toggle Dark/Light Mode">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+
+          <!-- Notifications Bell -->
+          <button class="btn-icon" id="topbar-notif-btn" title="View Notifications">
+            <i class="fa-regular fa-bell"></i>
+            <span id="notif-dot" style="position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></span>
+          </button>
+
+          <!-- Quick Actions Dropdown / Onboard Button -->
+          <button class="btn btn-primary btn-sm" id="btn-quick-onboard">
+            <i class="fa-solid fa-plus"></i>
+            <span>Register School</span>
+          </button>
+
+          <!-- User Profile -->
+          <div class="user-profile-pill" id="user-menu-btn" title="Switch User or Manage Profile">
+            <div class="avatar" id="user-avatar-initials">SA</div>
+            <div style="text-align: left; line-height: 1.15;">
+              <div style="font-size: 0.8rem; font-weight: 600;" id="user-display-name">Chief SaaS Exec</div>
+              <div style="font-size: 0.68rem; color: var(--text-muted);" id="user-display-role">SUPER_ADMIN</div>
+            </div>
+            <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; color: var(--text-dim); margin-left: 0.25rem;"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dynamic Page Container -->
+      <main class="page-container" id="view-content">
+        <!-- Content will be injected dynamically by app.js -->
+        <div style="text-align: center; padding: 4rem 1rem;">
+          <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--accent-primary);"></i>
+          <div style="margin-top: 1rem; color: var(--text-muted);">Initializing Central ERP Command...</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Register School Modal -->
+  <div class="modal-overlay" id="modal-register-school">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-school-flag" style="color: var(--accent-primary); margin-right: 0.5rem;"></i> Register New School ERP</div>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-register-school">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">School Name *</label>
+              <input type="text" class="form-control" name="name" required placeholder="e.g. Cambridge Global Academy">
+            </div>
+            <div class="form-group">
+              <label class="form-label">School Code (Unique identifier) *</label>
+              <input type="text" class="form-control" name="code" required placeholder="e.g. SCH-CAMBRIDGE">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">School ERP Base URL *</label>
+            <input type="url" class="form-control" name="erp_url" required placeholder="https://cambridge.schools-erp.cloud">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">City *</label>
+              <input type="text" class="form-control" name="city" required placeholder="e.g. Pune">
+            </div>
+            <div class="form-group">
+              <label class="form-label">State *</label>
+              <input type="text" class="form-control" name="state" required placeholder="e.g. Maharashtra">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Principal / Owner Name *</label>
+              <input type="text" class="form-control" name="owner_name" required placeholder="Dr. John Doe">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Owner Email *</label>
+              <input type="email" class="form-control" name="owner_email" required placeholder="owner@school.edu">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Owner Phone *</label>
+              <input type="tel" class="form-control" name="owner_phone" required placeholder="+91 98765 43210">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Technical Admin Contact</label>
+              <input type="text" class="form-control" name="tech_contact_name" placeholder="IT Head Name">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Subscription Plan *</label>
+              <select class="form-select" name="plan_id" id="reg-plan-select">
+                <option value="plan-starter">Starter Campus Edition (₹12,000/mo)</option>
+                <option value="plan-growth" selected>Growth Academy Pro (₹25,000/mo)</option>
+                <option value="plan-enterprise">Enterprise Global Campus (₹55,000/mo)</option>
+                <option value="plan-custom">Custom Mega-Campus (₹90,000/mo)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Billing Cycle *</label>
+              <select class="form-select" name="billing_cycle" id="reg-billing-cycle">
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="HALF_YEARLY">Half-Yearly</option>
+                <option value="YEARLY" selected>Yearly</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Per-Student Dynamic Pricing & Automatic Multiplier Section -->
+          <div style="background: var(--bg-card-header); border: 1px solid var(--border-main); border-radius: 8px; padding: 1rem; margin-bottom: 1.1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--accent-primary);">
+                <i class="fa-solid fa-calculator"></i> Pricing Model & Student Multiplier
+              </label>
+              <div style="display: flex; gap: 0.75rem; font-size: 0.8rem;">
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
+                  <input type="radio" name="pricing_model" value="PER_STUDENT" checked id="radio-per-student"> Per-Student Rate
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
+                  <input type="radio" name="pricing_model" value="FLAT" id="radio-flat"> Flat Tier Price
+                </label>
+              </div>
+            </div>
+
+            <div id="per-student-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Plan Price Per Student (₹ / student / month) *</label>
+                <input type="number" class="form-control" name="price_per_student" id="reg-price-per-student" value="25.0" step="0.5" min="1" placeholder="e.g. 25">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Initial / Latest Students *</label>
+                <input type="number" class="form-control" name="initial_students" id="reg-initial-students" value="500" min="1" placeholder="e.g. 500">
+              </div>
+            </div>
+
+            <!-- Live Calculation Display -->
+            <div id="live-calculation-box" style="margin-top: 0.75rem; padding: 0.65rem 0.85rem; background: rgba(37,99,235,0.08); border: 1px dashed var(--accent-primary); border-radius: 6px; font-size: 0.825rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+              <div>
+                <span style="color: var(--text-muted); font-size: 0.75rem;">Formula:</span>
+                <strong id="calc-formula-text" style="color: var(--text-main); margin-left: 0.35rem; font-family: monospace;">500 students × ₹25/mo × 12 mos</strong>
+              </div>
+              <div style="text-align: right;">
+                <span style="color: var(--text-muted); font-size: 0.72rem; display: block;">Amount to Pay by School:</span>
+                <strong id="calc-total-amount" style="font-size: 1.1rem; color: #10b981;">₹1,50,000 / year</strong>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Grace Period (Days)</label>
+              <input type="number" class="form-control" name="grace_period_days" value="7">
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
+              <input type="checkbox" name="auto_suspend_enabled" id="reg-auto-suspend" style="width: 16px; height: 16px;">
+              <label for="reg-auto-suspend" style="font-size: 0.8rem; cursor: pointer;">Enable Auto-Suspension after grace period</label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close-btn">Cancel</button>
+        <button class="btn btn-primary" id="btn-submit-register-school">Register & Generate Keys</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remote Command Dispatch Modal -->
+  <div class="modal-overlay" id="modal-remote-command">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-terminal" style="color: var(--accent-primary); margin-right: 0.5rem;"></i> Remote ERP Service Control</div>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-remote-command">
+          <input type="hidden" name="school_id" id="cmd-school-id">
+
+          <div class="alert-box alert-info" id="cmd-school-info-banner">
+            <div>
+              <div style="font-weight: 600;" id="cmd-school-name-label">School Name</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);" id="cmd-school-url-label">https://school.cloud</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Predefined Remote Command *</label>
+            <select class="form-select" name="command_type" id="cmd-type-select" required>
+              <option value="SUSPEND_SERVICE">SUSPEND_SERVICE (Safely block normal school logins with suspended page)</option>
+              <option value="REACTIVATE_SERVICE">REACTIVATE_SERVICE (Restore full ERP access immediately)</option>
+              <option value="EXTEND_SUBSCRIPTION">EXTEND_SUBSCRIPTION (Add extra days to subscription)</option>
+              <option value="UPDATE_MODULES">UPDATE_MODULES (Enable/Disable ERP feature modules)</option>
+              <option value="SET_GRACE_PERIOD">SET_GRACE_PERIOD (Configure grace period days)</option>
+            </select>
+          </div>
+
+          <!-- Dynamic fields based on command -->
+          <div id="cmd-suspend-fields">
+            <div class="alert-box alert-warning">
+              <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.1rem;"></i>
+              <div>
+                <strong>Non-Destructive Suspension Guarantee:</strong> This command instructs the School ERP connector to route non-admin users to a service suspended notice. <strong>No student records, teacher records, or databases are ever deleted or altered.</strong>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Suspension Reason (Displayed to school users) *</label>
+              <input type="text" class="form-control" name="suspend_reason" value="Annual ERP subscription renewal overdue. Please contact central administration." placeholder="e.g. Overdue payment">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Billing / Support Contact *</label>
+              <input type="text" class="form-control" name="support_contact" value="billing@centralcommand.io | +91 800-ERP-HELP">
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem;">
+              <input type="checkbox" id="cmd-confirm-suspend" required style="width: 18px; height: 18px;">
+              <label for="cmd-confirm-suspend" style="font-size: 0.825rem; font-weight: 600; color: #ef4444; cursor: pointer;">
+                I understand this will temporarily block school ERP access until reactivated.
+              </label>
+            </div>
+          </div>
+
+          <div id="cmd-extend-fields" style="display: none;">
+            <div class="form-group">
+              <label class="form-label">Days to Extend *</label>
+              <input type="number" class="form-control" name="extend_days" value="30" min="1" max="365">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Extension Reason</label>
+              <input type="text" class="form-control" name="extend_reason" placeholder="e.g. Good customer bonus, grace extension">
+            </div>
+          </div>
+
+          <div id="cmd-modules-fields" style="display: none;">
+            <label class="form-label">Select Permitted ERP Modules</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem;" id="modules-checkbox-group">
+              <label><input type="checkbox" value="admissions" checked> Admissions & Census</label>
+              <label><input type="checkbox" value="attendance" checked> Daily Attendance</label>
+              <label><input type="checkbox" value="fees" checked> Student Fee Billing</label>
+              <label><input type="checkbox" value="academics" checked> Academics & Timetable</label>
+              <label><input type="checkbox" value="exams" checked> Examination & Report Cards</label>
+              <label><input type="checkbox" value="library" checked> Library Management</label>
+              <label><input type="checkbox" value="payroll" checked> Staff Payroll</label>
+              <label><input type="checkbox" value="transport"> GPS Bus Transport</label>
+              <label><input type="checkbox" value="hostel"> Hostel & Dorms</label>
+              <label><input type="checkbox" value="reports" checked> Analytics & Reports</label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close-btn">Cancel</button>
+        <button class="btn btn-danger" id="btn-dispatch-command">
+          <i class="fa-solid fa-paper-plane"></i> Dispatch Command
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate Invoice Modal -->
+  <div class="modal-overlay" id="modal-generate-invoice">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-file-invoice" style="color: var(--accent-primary); margin-right: 0.5rem;"></i> Generate Subscription Invoice</div>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-generate-invoice">
+          <div class="form-group">
+            <label class="form-label">Select School *</label>
+            <select class="form-select" name="school_id" id="inv-school-select" required></select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Period Start *</label>
+              <input type="date" class="form-control" name="period_start" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Period End *</label>
+              <input type="date" class="form-control" name="period_end" required>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Subtotal Amount (INR) *</label>
+              <input type="number" class="form-control" name="subtotal" id="inv-subtotal" required placeholder="e.g. 55000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">GST Tax Rate (%)</label>
+              <input type="number" class="form-control" name="tax_rate" id="inv-tax-rate" value="18.0" step="0.1">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Payment Due Date *</label>
+            <input type="date" class="form-control" name="due_date" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Invoice Notes</label>
+            <textarea class="form-control" name="notes" rows="2" placeholder="Subscription period details, payment bank instructions..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close-btn">Cancel</button>
+        <button class="btn btn-primary" id="btn-submit-generate-invoice">Generate & Send Invoice</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Record Manual Payment Modal -->
+  <div class="modal-overlay" id="modal-record-payment">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-money-bill-transfer" style="color: var(--accent-success); margin-right: 0.5rem;"></i> Record Subscription Payment</div>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-record-payment">
+          <input type="hidden" name="invoice_id" id="pay-invoice-id">
+          
+          <div class="alert-box alert-info" id="pay-invoice-summary">
+            <div>
+              <strong id="pay-inv-number">INV-2026-000</strong>
+              <div style="font-size: 0.75rem;">Balance Due: <span id="pay-inv-balance">₹0</span></div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Payment Amount (INR) *</label>
+              <input type="number" class="form-control" name="amount" id="pay-amount" required step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Date *</label>
+              <input type="date" class="form-control" name="payment_date" id="pay-date" required>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Payment Method *</label>
+              <select class="form-select" name="payment_method">
+                <option value="BANK_TRANSFER">Bank Wire / RTGS / NEFT</option>
+                <option value="UPI">UPI Instant Payment</option>
+                <option value="CREDIT_CARD">Corporate Card / Gateway</option>
+                <option value="CHEQUE">Bank Cheque / Draft</option>
+                <option value="CASH">Cash Deposit</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Transaction Reference / UTR *</label>
+              <input type="text" class="form-control" name="transaction_reference" required placeholder="e.g. HDFC_NEFT_20261113_9981">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Internal Notes</label>
+            <input type="text" class="form-control" name="notes" placeholder="Verified against bank reconciliation statement">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close-btn">Cancel</button>
+        <button class="btn btn-success" id="btn-submit-record-payment">Confirm Payment Receipt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Switch User / Auth Modal -->
+  <div class="modal-overlay" id="modal-auth-users">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-users-gear" style="color: var(--accent-primary); margin-right: 0.5rem;"></i> Switch Active Admin Role</div>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Select a persona to test role-based access control (RBAC) across Super Admin, Operations, Finance, and Security Audit roles:
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div class="user-role-card" data-email="admin@centralcommand.io" data-pass="Admin@123456" style="padding: 0.9rem; border: 1px solid var(--border-main); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card-header);">
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem;">Chief SaaS Executive (Super Admin)</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">admin@centralcommand.io • Full control, suspension, credentials, financials</div>
+            </div>
+            <span class="badge badge-active">SUPER_ADMIN</span>
+          </div>
+
+          <div class="user-role-card" data-email="ops@centralcommand.io" data-pass="Ops@123456" style="padding: 0.9rem; border: 1px solid var(--border-main); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card-header);">
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem;">Operations Lead</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">ops@centralcommand.io • School onboarding, modules, telemetry, commands</div>
+            </div>
+            <span class="badge badge-trial">OPERATIONS</span>
+          </div>
+
+          <div class="user-role-card" data-email="finance@centralcommand.io" data-pass="Finance@123456" style="padding: 0.9rem; border: 1px solid var(--border-main); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card-header);">
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem;">Senior Billing Comptroller</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">finance@centralcommand.io • Invoices, payment recordings, revenue tracking</div>
+            </div>
+            <span class="badge badge-healthy">FINANCE</span>
+          </div>
+
+          <div class="user-role-card" data-email="auditor@centralcommand.io" data-pass="Audit@123456" style="padding: 0.9rem; border: 1px solid var(--border-main); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card-header);">
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem;">Compliance & Security Auditor</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">auditor@centralcommand.io • Read-only security audit, anomaly monitoring</div>
+            </div>
+            <span class="badge badge-stale">AUDITOR</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script src="/app.js"></script>
+</body>
+</html>

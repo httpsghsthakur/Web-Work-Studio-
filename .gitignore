@@ -1,0 +1,22 @@
+# Dependency directories
+node_modules/
+
+# Environment files
+.env
+.env.local
+
+# SQLite Database files (generated dynamically via npm run seed / initSchema)
+data/*.sqlite
+data/*.sqlite-journal
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/*.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS metadata
+.DS_Store
+Thumbs.db
