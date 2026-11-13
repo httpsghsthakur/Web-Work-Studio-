@@ -1627,95 +1627,424 @@
   }
 
   // ==========================================================================
-  // 4. ANALYTICS & COMPARISON MATRIX
+  // 4. ANALYTICS & COMPARISON MATRIX (DEEP REAL-TIME BI HUB)
   // ==========================================================================
   async function renderAnalytics() {
     const container = document.getElementById('view-content');
     container.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title"><i class="fa-solid fa-chart-line" style="color: var(--accent-primary);"></i> School Analytics & Comparative Matrix</h1>
-          <div class="page-subtitle">Cross-school benchmarking • Academic census comparison • Retention and revenue correlation</div>
-        </div>
-        <div>
-          <a href="/api/v1/analytics/export" class="btn btn-secondary btn-sm" id="btn-export-csv" download>
-            <i class="fa-solid fa-file-csv"></i> Export Matrix to CSV
-          </a>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom: 1.5rem;">
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>School Name & Code</th>
-                <th>Status</th>
-                <th>Plan Tier</th>
-                <th>Enrolled Students</th>
-                <th>Active Ratio</th>
-                <th>Teachers</th>
-                <th>Attendance %</th>
-                <th>Daily Logins</th>
-                <th>Storage (MB)</th>
-                <th>Total Invoiced</th>
-                <th>Total Paid</th>
-                <th>Outstanding</th>
-              </tr>
-            </thead>
-            <tbody id="matrix-tbody">
-              <tr><td colspan="12" style="text-align: center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin"></i> Loading comparison matrix...</td></tr>
-            </tbody>
-          </table>
-        </div>
+      <div style="text-align: center; padding: 2rem;">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 1.5rem; color: var(--accent-primary);"></i>
+        <div style="margin-top: 0.5rem; color: var(--text-muted);">Aggregating deep multi-school telemetry and analytical matrices...</div>
       </div>
     `;
 
     try {
-      const res = await api('/analytics/comparison');
-      const matrix = res.data;
-      const tbody = document.getElementById('matrix-tbody');
-      if (!tbody) return;
+      const res = await api('/analytics/deep-metrics');
+      const { kpis, matrix, wingDistribution, executive } = res.data;
 
-      tbody.innerHTML = matrix.map(m => {
-        const activeRatio = m.students > 0 ? ((m.active_students / m.students) * 100).toFixed(1) : 0;
-        return `
-          <tr>
-            <td>
-              <strong>${m.name}</strong>
-              <div style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;">${m.code} • ${m.city}</div>
-            </td>
-            <td>
-              <span class="badge ${m.status === 'ACTIVE' ? 'badge-active' : m.status === 'SUSPENDED' ? 'badge-suspended' : 'badge-trial'}">
-                ${m.status}
-              </span>
-            </td>
-            <td><span class="badge badge-trial">${m.plan_name || 'Standard'}</span></td>
-            <td><strong>${m.students.toLocaleString()}</strong></td>
-            <td>
-              <div style="display: flex; align-items: center; gap: 0.35rem;">
-                <span style="font-size: 0.8rem; font-weight: 600;">${activeRatio}%</span>
-                <span style="font-size: 0.7rem; color: var(--text-muted);">(${m.active_students})</span>
+      container.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title"><i class="fa-solid fa-chart-line" style="color: var(--accent-primary);"></i> School Analytics & Comparative BI Matrix</h1>
+            <div class="page-subtitle">Cross-school capacity benchmarking • Student-teacher ratios • Collection efficiency • Real-time telemetry</div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <div class="dropdown" style="display: inline-block;">
+              <a href="/api/v1/analytics/export?type=all" class="btn btn-secondary btn-sm" download>
+                <i class="fa-solid fa-file-csv"></i> Export Master CSV
+              </a>
+            </div>
+            <a href="/api/v1/analytics/export?type=financial" class="btn btn-secondary btn-sm" download>
+              <i class="fa-solid fa-file-invoice-dollar"></i> Export Financials
+            </a>
+            <a href="/api/v1/analytics/export?type=census" class="btn btn-secondary btn-sm" download>
+              <i class="fa-solid fa-users"></i> Export Census
+            </a>
+            <a href="/api/v1/analytics/export?type=json" class="btn btn-secondary btn-sm" download>
+              <i class="fa-solid fa-code"></i> JSON Bundle
+            </a>
+          </div>
+        </div>
+
+        <!-- 100% Real Database Analytics KPIs -->
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-bottom: 1.5rem;">
+          <div class="kpi-card">
+            <div class="kpi-card-header">
+              <span>Total Network Capacity</span>
+              <div class="kpi-icon" style="background: rgba(37,99,235,0.15); color: #3b82f6;"><i class="fa-solid fa-user-graduate"></i></div>
+            </div>
+            <div class="kpi-value">${kpis.totalStudents.toLocaleString()} <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">Students</span></div>
+            <div class="kpi-footer">
+              <span class="badge badge-healthy">${kpis.totalTeachers} Faculty</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Ratio: ${kpis.networkRatio}:1</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-card-header">
+              <span>Collection Efficiency</span>
+              <div class="kpi-icon" style="background: rgba(16,185,129,0.15); color: #10b981;"><i class="fa-solid fa-chart-pie"></i></div>
+            </div>
+            <div class="kpi-value" style="color: #10b981;">${kpis.collectionEfficiency}%</div>
+            <div class="kpi-footer">
+              <span>Paid: <strong>₹${kpis.totalPaid.toLocaleString()}</strong></span>
+              <span style="color: ${kpis.totalOutstanding > 0 ? '#ef4444' : 'var(--text-muted)'}; font-size: 0.75rem;">Due: ₹${kpis.totalOutstanding.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-card-header">
+              <span>Network Attendance Index</span>
+              <div class="kpi-icon" style="background: rgba(245,158,11,0.15); color: #f59e0b;"><i class="fa-solid fa-clipboard-user"></i></div>
+            </div>
+            <div class="kpi-value" style="color: ${parseFloat(kpis.avgAttendance) >= 90 ? '#10b981' : '#f59e0b'};">${kpis.avgAttendance}%</div>
+            <div class="kpi-footer">
+              <span>Across <strong>${kpis.totalSchools}</strong> Connected Schools</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-card-header">
+              <span>Infrastructure & Health</span>
+              <div class="kpi-icon" style="background: rgba(139,92,246,0.15); color: #8b5cf6;"><i class="fa-solid fa-server"></i></div>
+            </div>
+            <div class="kpi-value">${((executive.census.total_storage_mb || 0) / 1024).toFixed(1)} <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">GB</span></div>
+            <div class="kpi-footer">
+              <span class="badge badge-healthy">${executive.schools.healthy_erps} Online</span>
+              <span class="badge ${executive.schools.suspended_schools > 0 ? 'badge-suspended' : 'badge-active'}">${executive.schools.suspended_schools} Suspended</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytical Charts Grid -->
+        <div class="charts-grid" style="margin-bottom: 1.5rem;">
+          <div class="chart-card">
+            <div class="chart-header">
+              <span class="chart-title"><i class="fa-solid fa-chart-bar" style="color: var(--accent-primary);"></i> School Student Census & Faculty Headcount</span>
+            </div>
+            <div class="chart-body" style="height: 260px; position: relative;">
+              <canvas id="chart-analytics-census"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <span class="chart-title"><i class="fa-solid fa-scale-balanced" style="color: #10b981;"></i> Commercial Invoiced vs Paid Revenue</span>
+            </div>
+            <div class="chart-body" style="height: 260px; position: relative;">
+              <canvas id="chart-analytics-finance"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-grid" style="margin-bottom: 1.5rem;">
+          <div class="chart-card">
+            <div class="chart-header">
+              <span class="chart-title"><i class="fa-solid fa-square-poll-horizontal" style="color: #f59e0b;"></i> Daily Attendance Reliability Index (%)</span>
+            </div>
+            <div class="chart-body" style="height: 240px; position: relative;">
+              <canvas id="chart-analytics-attendance"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <span class="chart-title"><i class="fa-solid fa-cubes-stacked" style="color: #8b5cf6;"></i> Network-wide Academic Wing Allocation</span>
+            </div>
+            <div class="chart-body" style="height: 240px; position: relative;">
+              <canvas id="chart-analytics-wings"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="card" style="margin-bottom: 1rem; padding: 0.85rem 1.15rem; background: var(--bg-card-header);">
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; justify-content: space-between;">
+            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; flex: 1;">
+              <div style="min-width: 240px; flex: 1;">
+                <input type="text" id="analytics-search-input" class="form-control" placeholder="Search by school name, code, city, or state..." style="font-size: 0.8rem; padding: 0.45rem 0.75rem;">
               </div>
-            </td>
-            <td>${m.teachers}</td>
-            <td>
-              <span style="color: ${m.attendance_rate >= 90 ? '#10b981' : '#f59e0b'}; font-weight: 700;">
-                ${m.attendance_rate}%
-              </span>
-            </td>
-            <td>${m.daily_logins.toLocaleString()}</td>
-            <td>${(m.storage_mb / 1024).toFixed(1)} GB</td>
-            <td>₹${m.total_invoiced.toLocaleString()}</td>
-            <td style="color: #10b981; font-weight: 600;">₹${m.total_paid.toLocaleString()}</td>
-            <td style="color: ${m.outstanding_balance > 0 ? '#ef4444' : 'inherit'}; font-weight: 700;">
-              ₹${m.outstanding_balance.toLocaleString()}
-            </td>
-          </tr>
-        `;
-      }).join('');
+              <div>
+                <select id="analytics-status-filter" class="form-select" style="font-size: 0.8rem; padding: 0.45rem 0.75rem;">
+                  <option value="">All Operational Statuses</option>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="SUSPENDED">SUSPENDED</option>
+                  <option value="TRIAL">TRIAL</option>
+                </select>
+              </div>
+              <div>
+                <select id="analytics-payment-filter" class="form-select" style="font-size: 0.8rem; padding: 0.45rem 0.75rem;">
+                  <option value="">All Payment Statuses</option>
+                  <option value="PAID">PAID</option>
+                  <option value="OVERDUE">OVERDUE</option>
+                  <option value="PENDING">PENDING</option>
+                </select>
+              </div>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;" id="analytics-count-label">
+              Showing ${matrix.length} Connected Schools
+            </div>
+          </div>
+        </div>
+
+        <!-- Granular Comparative Matrix Table -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>School & Location</th>
+                  <th>Status & Health</th>
+                  <th>Plan & Rate</th>
+                  <th>Enrolled Students</th>
+                  <th>Active Ratio</th>
+                  <th>Teachers & Ratio</th>
+                  <th>Attendance</th>
+                  <th>Storage & Logins</th>
+                  <th>Total Invoiced</th>
+                  <th>Total Paid</th>
+                  <th>Outstanding</th>
+                  <th>Efficiency</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="matrix-tbody">
+                ${matrix.length === 0 ? `
+                  <tr><td colspan="13" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-school-circle-exclamation" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i>
+                    No schools registered yet. Click <strong>Register School</strong> to onboard your first school ERP website.
+                  </td></tr>
+                ` : matrix.map(m => {
+                  const activeRatio = m.students > 0 ? ((m.active_students / m.students) * 100).toFixed(1) : '0';
+                  const rateLabel = m.pricing_model === 'PER_STUDENT' ? `₹${m.price_per_student}/st` : 'Flat Tier';
+                  return `
+                    <tr class="analytics-row" data-name="${(m.name || '').toLowerCase()}" data-code="${(m.code || '').toLowerCase()}" data-city="${(m.city || '').toLowerCase()}" data-status="${m.status}" data-payment="${m.payment_status}">
+                      <td>
+                        <strong>${m.name}</strong>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">
+                          ${m.code} • ${m.city || 'India'}
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge ${m.status === 'ACTIVE' ? 'badge-active' : m.status === 'SUSPENDED' ? 'badge-suspended' : 'badge-trial'}">
+                          ${m.status}
+                        </span>
+                        <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.15rem;">
+                          <i class="fa-solid fa-circle" style="font-size: 6px; color: ${m.health_status === 'HEALTHY' ? '#10b981' : '#f59e0b'};"></i> ${m.health_status}
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge badge-trial" style="font-size: 0.7rem;">${m.plan_name || 'Pro'}</span>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace; margin-top: 0.15rem;">${rateLabel} • ${m.billing_cycle}</div>
+                      </td>
+                      <td>
+                        <strong style="font-size: 0.95rem; color: var(--accent-primary);">${m.students.toLocaleString()}</strong>
+                        <div style="font-size: 0.68rem; color: var(--text-muted);">+${m.recent_admissions} new</div>
+                      </td>
+                      <td>
+                        <div style="font-size: 0.8rem; font-weight: 600;">${activeRatio}%</div>
+                        <div style="font-size: 0.68rem; color: var(--text-muted);">(${m.active_students} active)</div>
+                      </td>
+                      <td>
+                        <strong>${m.teachers}</strong>
+                        <div style="font-size: 0.68rem; color: var(--text-muted);">${m.student_teacher_ratio}:1 ratio</div>
+                      </td>
+                      <td>
+                        <strong style="color: ${m.attendance_rate >= 90 ? '#10b981' : '#f59e0b'}; font-size: 0.85rem;">
+                          ${m.attendance_rate}%
+                        </strong>
+                      </td>
+                      <td>
+                        <div style="font-size: 0.8rem;">${(m.storage_mb / 1024).toFixed(1)} GB</div>
+                        <div style="font-size: 0.68rem; color: var(--text-muted);">${m.daily_logins.toLocaleString()} logins</div>
+                      </td>
+                      <td>₹${m.total_invoiced.toLocaleString()}</td>
+                      <td style="color: #10b981; font-weight: 700;">₹${m.total_paid.toLocaleString()}</td>
+                      <td style="color: ${m.outstanding_balance > 0 ? '#ef4444' : 'var(--text-muted)'}; font-weight: 700;">
+                        ₹${m.outstanding_balance.toLocaleString()}
+                      </td>
+                      <td>
+                        <span class="badge ${m.collection_efficiency >= 100 ? 'badge-healthy' : m.collection_efficiency >= 50 ? 'badge-trial' : 'badge-suspended'}">
+                          ${m.collection_efficiency}%
+                        </span>
+                      </td>
+                      <td>
+                        <button class="btn btn-secondary btn-sm" onclick="viewSchoolProfile('${m.id}')" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;">
+                          Profile
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      // Render Charts if schools exist
+      if (matrix.length > 0) {
+        // Chart 1: Students vs Teachers Census
+        const ctxCensus = document.getElementById('chart-analytics-census')?.getContext('2d');
+        if (ctxCensus) {
+          state.activeCharts.analyticsCensus = new Chart(ctxCensus, {
+            type: 'bar',
+            data: {
+              labels: matrix.slice(0, 10).map(s => s.code),
+              datasets: [
+                {
+                  label: 'Enrolled Students',
+                  data: matrix.slice(0, 10).map(s => s.students),
+                  backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                  borderRadius: 4
+                },
+                {
+                  label: 'Faculty & Teachers',
+                  data: matrix.slice(0, 10).map(s => s.teachers),
+                  backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                  borderRadius: 4
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+        }
+
+        // Chart 2: Revenue vs Paid vs Dues
+        const ctxFinance = document.getElementById('chart-analytics-finance')?.getContext('2d');
+        if (ctxFinance) {
+          state.activeCharts.analyticsFinance = new Chart(ctxFinance, {
+            type: 'bar',
+            data: {
+              labels: matrix.slice(0, 10).map(s => s.code),
+              datasets: [
+                {
+                  label: 'Total Invoiced (₹)',
+                  data: matrix.slice(0, 10).map(s => s.total_invoiced),
+                  backgroundColor: 'rgba(148, 163, 184, 0.65)',
+                  borderRadius: 4
+                },
+                {
+                  label: 'Collected Revenue (₹)',
+                  data: matrix.slice(0, 10).map(s => s.total_paid),
+                  backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                  borderRadius: 4
+                },
+                {
+                  label: 'Outstanding Dues (₹)',
+                  data: matrix.slice(0, 10).map(s => s.outstanding_balance),
+                  backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                  borderRadius: 4
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+        }
+
+        // Chart 3: Attendance Reliability
+        const ctxAttendance = document.getElementById('chart-analytics-attendance')?.getContext('2d');
+        if (ctxAttendance) {
+          state.activeCharts.analyticsAttendance = new Chart(ctxAttendance, {
+            type: 'bar',
+            data: {
+              labels: matrix.slice(0, 10).map(s => s.code),
+              datasets: [{
+                label: 'Daily Attendance %',
+                data: matrix.slice(0, 10).map(s => s.attendance_rate),
+                backgroundColor: matrix.slice(0, 10).map(s => s.attendance_rate >= 90 ? 'rgba(16, 185, 129, 0.75)' : 'rgba(245, 158, 11, 0.75)'),
+                borderRadius: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true, max: 100 } }
+            }
+          });
+        }
+
+        // Chart 4: Academic Wing Allocation Doughnut
+        const ctxWings = document.getElementById('chart-analytics-wings')?.getContext('2d');
+        if (ctxWings) {
+          const wingLabels = Object.keys(wingDistribution);
+          const wingData = Object.values(wingDistribution);
+          state.activeCharts.analyticsWings = new Chart(ctxWings, {
+            type: 'doughnut',
+            data: {
+              labels: wingLabels,
+              datasets: [{
+                data: wingData,
+                backgroundColor: [
+                  '#3b82f6',
+                  '#10b981',
+                  '#f59e0b',
+                  '#8b5cf6'
+                ],
+                borderWidth: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } }
+            }
+          });
+        }
+      }
+
+      // Wire Live Client Filter
+      const searchInput = document.getElementById('analytics-search-input');
+      const statusFilter = document.getElementById('analytics-status-filter');
+      const paymentFilter = document.getElementById('analytics-payment-filter');
+      const countLabel = document.getElementById('analytics-count-label');
+
+      function filterMatrixRows() {
+        const q = (searchInput?.value || '').toLowerCase().trim();
+        const stat = (statusFilter?.value || '');
+        const pay = (paymentFilter?.value || '');
+        const rows = document.querySelectorAll('.analytics-row');
+        let visible = 0;
+
+        rows.forEach(r => {
+          const name = r.getAttribute('data-name') || '';
+          const code = r.getAttribute('data-code') || '';
+          const city = r.getAttribute('data-city') || '';
+          const rowStatus = r.getAttribute('data-status') || '';
+          const rowPay = r.getAttribute('data-payment') || '';
+
+          const matchText = !q || name.includes(q) || code.includes(q) || city.includes(q);
+          const matchStatus = !stat || rowStatus === stat;
+          const matchPay = !pay || rowPay === pay;
+
+          if (matchText && matchStatus && matchPay) {
+            r.style.display = '';
+            visible++;
+          } else {
+            r.style.display = 'none';
+          }
+        });
+
+        if (countLabel) countLabel.textContent = `Showing ${visible} of ${matrix.length} Connected Schools`;
+      }
+
+      searchInput?.addEventListener('input', filterMatrixRows);
+      statusFilter?.addEventListener('change', filterMatrixRows);
+      paymentFilter?.addEventListener('change', filterMatrixRows);
+
     } catch (e) {
-      container.innerHTML += `<div class="alert-box alert-danger">${e.message}</div>`;
+      container.innerHTML = `<div class="alert-box alert-danger">${e.message}</div>`;
     }
   }
 
@@ -2402,63 +2731,361 @@
   }
 
   // ==========================================================================
-  // 11. REPORTS
+  // 11. REPORTS (ENTERPRISE BUSINESS INTELLIGENCE & EXPORT HUB)
   // ==========================================================================
   async function renderReports() {
     const container = document.getElementById('view-content');
     container.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title"><i class="fa-solid fa-file-export" style="color: var(--accent-primary);"></i> Business Intelligence Reports</h1>
-          <div class="page-subtitle">Downloadable financial statements • Multi-school academic census • Churn and retention analysis</div>
-        </div>
-      </div>
-
-      <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title"><i class="fa-solid fa-file-csv" style="color: #10b981;"></i> Complete Comparative Matrix</div>
-          </div>
-          <div class="card-body">
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-              Comprehensive export containing all connected schools, enrolled census, teachers, active status, attendance rates, invoiced amounts, and collected revenue.
-            </p>
-            <a href="/api/v1/analytics/export" class="btn btn-primary btn-sm" style="width: 100%;" download>
-              <i class="fa-solid fa-download"></i> Download CSV Export
-            </a>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title"><i class="fa-solid fa-file-invoice" style="color: #3b82f6;"></i> Financial Subscription Ledger</div>
-          </div>
-          <div class="card-body">
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-              Complete ledger of all generated invoices, payment dates, bank transaction references, UPI settlement IDs, and overdue balances.
-            </p>
-            <button class="btn btn-secondary btn-sm" style="width: 100%;" onclick="window.print()">
-              <i class="fa-solid fa-print"></i> Print Financial Summary
-            </button>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title"><i class="fa-solid fa-shield-virus" style="color: #ef4444;"></i> Security & Compliance Audit Log</div>
-          </div>
-          <div class="card-body">
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-              Immutable audit trail of all remote service controls, suspension events, credential rotation timestamps, and administrative actions.
-            </p>
-            <button class="btn btn-secondary btn-sm" style="width: 100%;" onclick="alert('Export generated to audit trail archive.')">
-              <i class="fa-solid fa-file-shield"></i> Export Security Audit
-            </button>
-          </div>
-        </div>
+      <div style="text-align: center; padding: 2rem;">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 1.5rem; color: var(--accent-primary);"></i>
+        <div style="margin-top: 0.5rem; color: var(--text-muted);">Loading real-time reporting data...</div>
       </div>
     `;
+
+    try {
+      const res = await api('/analytics/deep-metrics');
+      const { kpis, matrix } = res.data;
+
+      container.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title"><i class="fa-solid fa-file-export" style="color: var(--accent-primary);"></i> Enterprise Business Intelligence Reports</h1>
+            <div class="page-subtitle">100% Real-time database statements • Granular academic census • Commercial revenue ledger • Compliance audits</div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <a href="/api/v1/analytics/export?type=json" class="btn btn-secondary btn-sm" download>
+              <i class="fa-solid fa-code"></i> Download JSON Bundle
+            </a>
+            <button class="btn btn-secondary btn-sm" onclick="window.print()">
+              <i class="fa-solid fa-print"></i> Print View
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Granular Enterprise Report Suites -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+          
+          <!-- Report 1: Master Comparative Matrix -->
+          <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-header" style="background: var(--bg-card-header);">
+              <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-table-cells" style="color: var(--accent-primary); font-size: 1.15rem;"></i>
+                <div>
+                  <div style="font-size: 0.95rem; font-weight: 700;">Master Comparative BI Matrix</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Cross-School Benchmarking & Telemetry</div>
+                </div>
+              </div>
+              <span class="badge badge-active">${kpis.totalSchools} Schools</span>
+            </div>
+            <div class="card-body" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">
+                Comprehensive matrix containing every connected school ERP, enrolled student census, teacher count, daily attendance %, storage consumption, operational status, invoiced amount, and collection efficiency.
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                  <a href="/api/v1/analytics/export?type=all" class="btn btn-primary btn-sm" style="text-align: center;" download>
+                    <i class="fa-solid fa-file-csv"></i> Download CSV
+                  </a>
+                  <a href="/api/v1/analytics/export?type=json" class="btn btn-secondary btn-sm" style="text-align: center;" download>
+                    <i class="fa-solid fa-file-code"></i> JSON Data
+                  </a>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.openReportPreview('matrix')">
+                  <i class="fa-solid fa-eye"></i> Live Interactive Preview
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Report 2: Financial Subscription Ledger -->
+          <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-header" style="background: var(--bg-card-header);">
+              <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-file-invoice-dollar" style="color: #10b981; font-size: 1.15rem;"></i>
+                <div>
+                  <div style="font-size: 0.95rem; font-weight: 700;">Financial Subscription Ledger</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Invoices, GST Tax Breakdown & Settlement Dues</div>
+                </div>
+              </div>
+              <span class="badge badge-healthy">₹${kpis.totalPaid.toLocaleString()}</span>
+            </div>
+            <div class="card-body" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">
+                Detailed commercial audit ledger containing all subscription invoices, 18% GST tax breakdown, due dates, paid amounts, bank RTGS / NEFT / UPI settlement reference IDs, and delinquent receivables.
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                  <a href="/api/v1/analytics/export?type=financial" class="btn btn-primary btn-sm" style="text-align: center;" download>
+                    <i class="fa-solid fa-file-csv"></i> Download CSV
+                  </a>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="window.openReportPreview('financial')">
+                    <i class="fa-solid fa-eye"></i> Preview
+                  </button>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.print()">
+                  <i class="fa-solid fa-print"></i> Print Official Statement
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Report 3: Academic Census & Capacity Allocation -->
+          <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-header" style="background: var(--bg-card-header);">
+              <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-users" style="color: #f59e0b; font-size: 1.15rem;"></i>
+                <div>
+                  <div style="font-size: 0.95rem; font-weight: 700;">Academic Census & Capacity</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Enrollment, Staff Ratios & Class Allocations</div>
+                </div>
+              </div>
+              <span class="badge badge-trial">${kpis.totalStudents.toLocaleString()} Students</span>
+            </div>
+            <div class="card-body" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">
+                Granular academic report covering total enrolled students, active vs inactive counts, recent admissions, transfers, faculty headcount, student/teacher ratios, and Primary through Senior Secondary class distributions.
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <a href="/api/v1/analytics/export?type=census" class="btn btn-primary btn-sm" style="text-align: center;" download>
+                  <i class="fa-solid fa-file-csv"></i> Download Census CSV
+                </a>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.openReportPreview('census')">
+                  <i class="fa-solid fa-eye"></i> Live Interactive Preview
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Report 4: Security, Threat Telemetry & Operational Audit -->
+          <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-header" style="background: var(--bg-card-header);">
+              <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-shield-virus" style="color: #ef4444; font-size: 1.15rem;"></i>
+                <div>
+                  <div style="font-size: 0.95rem; font-weight: 700;">Security & Threat Audit Trail</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Login Anomalies, Suspensions & Operator Actions</div>
+                </div>
+              </div>
+              <span class="badge badge-stale"><i class="fa-solid fa-lock"></i> Immutable</span>
+            </div>
+            <div class="card-body" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">
+                Consolidated security log and operator audit trail: failed login anomalies, brute force spikes, remote suspension commands, reactivation events, and credential rotation timestamps across all connected ERPs.
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <a href="/api/v1/analytics/export?type=security" class="btn btn-primary btn-sm" style="text-align: center;" download>
+                  <i class="fa-solid fa-file-shield"></i> Download Security Audit CSV
+                </a>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.openReportPreview('security')">
+                  <i class="fa-solid fa-eye"></i> Live Interactive Preview
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } catch (e) {
+      container.innerHTML += `<div class="alert-box alert-danger">${e.message}</div>`;
+    }
   }
+
+  // --------------------------------------------------------------------------
+  // Interactive Live Report Previewer Engine
+  // --------------------------------------------------------------------------
+  window.openReportPreview = async function(reportType) {
+    const titleEl = document.getElementById('preview-report-title');
+    const subEl = document.getElementById('preview-report-subtitle');
+    const tableContainer = document.getElementById('preview-report-table-container');
+    const downloadCsvBtn = document.getElementById('btn-preview-download-csv');
+    const filterInput = document.getElementById('preview-report-filter');
+
+    if (!tableContainer) return;
+
+    if (downloadCsvBtn) {
+      downloadCsvBtn.href = `/api/v1/analytics/export?type=${reportType === 'matrix' ? 'all' : reportType}`;
+    }
+
+    if (filterInput) filterInput.value = '';
+
+    openModal('modal-report-preview');
+
+    tableContainer.innerHTML = `
+      <div style="text-align: center; padding: 2.5rem;">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 1.5rem; color: var(--accent-primary);"></i>
+        <div style="margin-top: 0.5rem; color: var(--text-muted);">Fetching 100% real database records for preview...</div>
+      </div>
+    `;
+
+    try {
+      if (reportType === 'matrix') {
+        if (titleEl) titleEl.textContent = 'Master Comparative BI Matrix — Live Preview';
+        if (subEl) subEl.textContent = '100% Real Synchronized School Performance & Telemetry';
+
+        const res = await api('/analytics/comparison');
+        const list = res.data;
+
+        if (list.length === 0) {
+          tableContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">No school records found in database.</div>';
+          return;
+        }
+
+        tableContainer.innerHTML = `
+          <table class="data-table" id="preview-active-table">
+            <thead>
+              <tr>
+                <th>Code</th><th>School Name</th><th>City</th><th>Status</th><th>Plan</th>
+                <th>Students</th><th>Teachers</th><th>Ratio</th><th>Attendance</th><th>Invoiced</th><th>Paid</th><th>Dues</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${list.map(r => `
+                <tr class="preview-row">
+                  <td><code>${r.code}</code></td>
+                  <td><strong>${r.name}</strong></td>
+                  <td>${r.city || 'India'}</td>
+                  <td><span class="badge ${r.status === 'ACTIVE' ? 'badge-active' : 'badge-suspended'}">${r.status}</span></td>
+                  <td>${r.plan_name || 'Standard'}</td>
+                  <td><strong>${r.students.toLocaleString()}</strong></td>
+                  <td>${r.teachers}</td>
+                  <td>${r.student_teacher_ratio}:1</td>
+                  <td><strong>${r.attendance_rate}%</strong></td>
+                  <td>₹${r.total_invoiced.toLocaleString()}</td>
+                  <td style="color: #10b981; font-weight: 700;">₹${r.total_paid.toLocaleString()}</td>
+                  <td style="color: ${r.outstanding_balance > 0 ? '#ef4444' : 'inherit'}; font-weight: 700;">₹${r.outstanding_balance.toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } else if (reportType === 'financial') {
+        if (titleEl) titleEl.textContent = 'Financial Subscription & Revenue Ledger — Live Preview';
+        if (subEl) subEl.textContent = '100% Real Commercial Invoices, 18% GST Taxes & Recorded Payments';
+
+        const res = await api('/analytics/reports/financial');
+        const list = res.data;
+
+        if (list.length === 0) {
+          tableContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">No subscription invoices or payment records found in database.</div>';
+          return;
+        }
+
+        tableContainer.innerHTML = `
+          <table class="data-table" id="preview-active-table">
+            <thead>
+              <tr>
+                <th>Invoice #</th><th>School Name</th><th>Cycle</th><th>Subtotal</th><th>GST (18%)</th>
+                <th>Total (INR)</th><th>Balance Due</th><th>Status</th><th>Paid Amount</th><th>Latest Payment Date</th><th>Ref / UTR</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${list.map(r => `
+                <tr class="preview-row">
+                  <td><code>${r.invoice_number}</code></td>
+                  <td><strong>${r.school_name}</strong> (${r.school_code})</td>
+                  <td>${r.billing_cycle}</td>
+                  <td>₹${r.subtotal.toLocaleString()}</td>
+                  <td>₹${r.tax_amount.toLocaleString()}</td>
+                  <td><strong>₹${r.total_amount.toLocaleString()}</strong></td>
+                  <td style="color: ${r.balance_due > 0 ? '#ef4444' : 'var(--text-muted)'}; font-weight: 700;">₹${r.balance_due.toLocaleString()}</td>
+                  <td><span class="badge ${r.invoice_status === 'PAID' ? 'badge-active' : r.invoice_status === 'OVERDUE' ? 'badge-suspended' : 'badge-trial'}">${r.invoice_status}</span></td>
+                  <td style="color: #10b981; font-weight: 700;">₹${r.total_payments.toLocaleString()}</td>
+                  <td>${r.latest_payment_date || 'N/A'}</td>
+                  <td><code>${r.latest_payment_reference || 'N/A'}</code></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } else if (reportType === 'census') {
+        if (titleEl) titleEl.textContent = 'Academic Census & Student Capacity Report — Live Preview';
+        if (subEl) subEl.textContent = '100% Real Student Enrollments, Faculty Counts & Class Breakdown';
+
+        const res = await api('/analytics/reports/census');
+        const list = res.data;
+
+        if (list.length === 0) {
+          tableContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">No academic census records found in database.</div>';
+          return;
+        }
+
+        tableContainer.innerHTML = `
+          <table class="data-table" id="preview-active-table">
+            <thead>
+              <tr>
+                <th>School Code</th><th>School Name</th><th>Total Students</th><th>Active Count</th>
+                <th>New Admissions</th><th>Departed</th><th>Faculty</th><th>Staff</th><th>Ratio</th><th>Daily Attendance</th><th>Last Sync</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${list.map(r => `
+                <tr class="preview-row">
+                  <td><code>${r.school_code}</code></td>
+                  <td><strong>${r.school_name}</strong></td>
+                  <td><strong style="color: var(--accent-primary); font-size: 0.95rem;">${r.total_students.toLocaleString()}</strong></td>
+                  <td>${r.active_students.toLocaleString()}</td>
+                  <td>+${r.recent_admissions}</td>
+                  <td>-${r.departed_students}</td>
+                  <td>${r.total_teachers}</td>
+                  <td>${r.non_teaching_staff}</td>
+                  <td><strong>${r.student_teacher_ratio}:1</strong></td>
+                  <td><strong style="color: ${r.attendance_rate >= 90 ? '#10b981' : '#f59e0b'};">${r.attendance_rate}%</strong></td>
+                  <td style="font-size: 0.72rem; color: var(--text-muted);">${r.sync_timestamp || 'Never'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } else if (reportType === 'security') {
+        if (titleEl) titleEl.textContent = 'Security, Threat Telemetry & Operational Audit Trail — Live Preview';
+        if (subEl) subEl.textContent = '100% Real System Threat Events, Operator Actions & Suspensions';
+
+        const res = await api('/analytics/reports/security');
+        const list = res.data;
+
+        if (list.length === 0) {
+          tableContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">No security events recorded in database.</div>';
+          return;
+        }
+
+        tableContainer.innerHTML = `
+          <table class="data-table" id="preview-active-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th><th>School</th><th>Event Type</th><th>Severity</th><th>User Identifier</th><th>IP Address</th><th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${list.map(r => `
+                <tr class="preview-row">
+                  <td style="font-size: 0.75rem; font-family: monospace;">${r.created_at}</td>
+                  <td><strong>${r.school_name || 'Central Platform'}</strong></td>
+                  <td><code>${r.event_type}</code></td>
+                  <td><span class="badge ${r.severity === 'CRITICAL' ? 'badge-suspended' : r.severity === 'WARNING' ? 'badge-trial' : 'badge-active'}">${r.severity}</span></td>
+                  <td>${r.user_identifier || 'SYSTEM'}</td>
+                  <td><code>${r.ip_address || '127.0.0.1'}</code></td>
+                  <td style="font-size: 0.78rem;">${r.description}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+
+      // Wire live search within report preview
+      if (filterInput) {
+        filterInput.oninput = function() {
+          const q = filterInput.value.toLowerCase().trim();
+          const rows = document.querySelectorAll('.preview-row');
+          rows.forEach(r => {
+            const text = r.textContent.toLowerCase();
+            r.style.display = !q || text.includes(q) ? '' : 'none';
+          });
+        };
+      }
+    } catch (err) {
+      tableContainer.innerHTML = `<div class="alert-box alert-danger">${err.message}</div>`;
+    }
+  };
 
   // ==========================================================================
   // 12. INTEGRATIONS & CONNECTOR SDK

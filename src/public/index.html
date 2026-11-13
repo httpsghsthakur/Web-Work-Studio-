@@ -540,6 +540,41 @@
     </div>
   </div>
 
+  <!-- Modal: Interactive Live Report Previewer -->
+  <div class="modal-overlay" id="modal-report-preview">
+    <div class="modal-card modal-card-lg" style="max-width: 1080px; width: 95%;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-file-waveform" style="color: var(--accent-primary); margin-right: 0.5rem;"></i>
+          <span id="preview-report-title">Report Live Data Preview</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <a href="#" id="btn-preview-download-csv" class="btn btn-secondary btn-sm" download>
+            <i class="fa-solid fa-file-csv"></i> Download CSV
+          </a>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="window.print()">
+            <i class="fa-solid fa-print"></i> Print
+          </button>
+          <button type="button" class="btn-icon modal-close-btn">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body" style="padding: 1rem 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="font-size: 0.8rem; color: var(--text-muted);" id="preview-report-subtitle">
+            100% Real Synchronized Database Records
+          </div>
+          <input type="text" id="preview-report-filter" class="form-control" placeholder="Quick search in preview..." style="max-width: 250px; font-size: 0.75rem; padding: 0.35rem 0.65rem;">
+        </div>
+        <div class="table-responsive" id="preview-report-table-container">
+          <!-- Dynamic table populated by app.js -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Remote Command Dispatch Modal -->
   <div class="modal-overlay" id="modal-remote-command">
     <div class="modal-card">
