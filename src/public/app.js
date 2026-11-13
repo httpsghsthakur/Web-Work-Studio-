@@ -585,6 +585,39 @@
           </div>
         </div>
 
+        <!-- ⏰ Upcoming Payment Due Alerts (Next 2-3 Days & Overdue) -->
+        <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid #f59e0b;">
+          <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-clock-rotate-left" style="color: #f59e0b;"></i> Upcoming Payment Due Alerts (Next 2-3 Days & Delinquent)
+                <span class="badge badge-overdue" id="dues-count-badge" style="display: none; padding: 0.15rem 0.55rem; font-size: 0.72rem;">0 Pending</span>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
+                Live payment tracking • Send official PDF invoice by email • Direct WhatsApp payment reminder to school owner
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <label for="select-due-cycle" style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0;">Payment Cycle:</label>
+              <select class="form-select form-select-sm" id="select-due-cycle" style="width: auto; padding: 0.28rem 0.65rem; font-size: 0.78rem; font-weight: 600;">
+                <option value="ALL" selected>All Payment Cycles</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="HALF_YEARLY">Half-Yearly</option>
+                <option value="YEARLY">Yearly</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" id="btn-refresh-dues" title="Refresh Payment Dues" style="padding: 0.28rem 0.65rem;">
+                <i class="fa-solid fa-rotate"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;" id="upcoming-dues-container">
+            <div style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
+              <i class="fa-solid fa-spinner fa-spin"></i> Checking approaching payment dues...
+            </div>
+          </div>
+        </div>
+
         <!-- 4 High-Density Responsive Analytical Charts -->
         <div class="charts-grid">
           <div class="card">
@@ -771,12 +804,218 @@
           const sid = b.getAttribute('data-id');
           openModal('modal-generate-invoice');
           const sel = document.getElementById('inv-school-select');
-          if (sel) sel.value = sid;
+          if (sel) {
+            sel.value = sid;
+            triggerInvoiceFormCalculation();
+          }
         });
+      });
+
+      // Initialize Upcoming Payment Due Alerts (Next 2-3 Days)
+      await renderUpcomingPaymentDues('ALL');
+
+      document.getElementById('select-due-cycle')?.addEventListener('change', (e) => {
+        renderUpcomingPaymentDues(e.target.value);
+      });
+
+      document.getElementById('btn-refresh-dues')?.addEventListener('click', () => {
+        const cycle = document.getElementById('select-due-cycle')?.value || 'ALL';
+        renderUpcomingPaymentDues(cycle);
       });
 
     } catch (err) {
       container.innerHTML = `<div class="alert-box alert-danger">Failed to load overview: ${err.message}</div>`;
+    }
+  }
+
+  // 1.1 UPCOMING PAYMENT DUE ALERTS RENDERER (NEXT 2-3 DAYS & OVERDUE)
+  // ==========================================================================
+  async function renderUpcomingPaymentDues(cycle = 'ALL') {
+    const container = document.getElementById('upcoming-dues-container');
+    const countBadge = document.getElementById('dues-count-badge');
+    if (!container) return;
+
+    try {
+      const res = await api(`/invoices/upcoming-dues?cycle=${encodeURIComponent(cycle)}&max_days=3`);
+      if (!res.success) throw new Error(res.error || 'Failed to fetch payment dues');
+
+      const dues = res.data || [];
+      if (countBadge) {
+        if (dues.length > 0) {
+          countBadge.textContent = `${dues.length} Action Required`;
+          countBadge.style.display = 'inline-block';
+        } else {
+          countBadge.style.display = 'none';
+        }
+      }
+
+      if (dues.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 2rem 1.5rem; color: var(--text-muted);">
+            <div style="font-size: 1.75rem; color: #10b981; margin-bottom: 0.4rem;"><i class="fa-solid fa-circle-check"></i></div>
+            <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">All Connected Schools Up-to-Date</div>
+            <div style="font-size: 0.8rem; margin-top: 0.25rem;">
+              No subscription invoices are due within the next 2-3 days${cycle !== 'ALL' ? ` for the <strong>${cycle}</strong> payment cycle` : ''}.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>School Name & Contact</th>
+                <th>Invoice #</th>
+                <th>Billing Cycle</th>
+                <th>Period</th>
+                <th>Amount to Pay</th>
+                <th>Due Date & Urgency</th>
+                <th style="text-align: right;">Instant Outreach & Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dues.map(d => {
+                let badgeClass = 'badge-pending';
+                let badgeStyle = '';
+                if (d.urgency === 'OVERDUE') {
+                  badgeClass = 'badge-overdue';
+                } else if (d.urgency === 'TODAY') {
+                  badgeClass = 'badge-overdue';
+                  badgeStyle = 'background: #dc2626; color: white; font-weight: 800;';
+                } else if (d.urgency === 'TOMORROW') {
+                  badgeClass = 'badge-pending';
+                  badgeStyle = 'background: rgba(245,158,11,0.25); color: #d97706; font-weight: 700;';
+                } else {
+                  badgeStyle = 'background: rgba(37,99,235,0.15); color: #2563eb; font-weight: 600;';
+                }
+
+                return `
+                  <tr>
+                    <td>
+                      <strong style="color: var(--text-main); font-size: 0.88rem;">${d.school_name}</strong>
+                      <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 0.5rem; margin-top: 0.15rem; flex-wrap: wrap;">
+                        <span><i class="fa-regular fa-id-card"></i> ${d.school_code}</span>
+                        <span><i class="fa-solid fa-user-tie"></i> ${d.owner_name || 'Admin'}</span>
+                        <span><i class="fa-solid fa-phone"></i> ${d.owner_phone || 'N/A'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <code style="font-weight: 700; color: var(--accent-primary); font-size: 0.82rem;">${d.invoice_number}</code>
+                    </td>
+                    <td>
+                      <span class="badge badge-trial">${d.billing_cycle}</span>
+                      <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">${d.plan_name || 'Campus Edition'}</div>
+                    </td>
+                    <td style="font-size: 0.75rem; color: var(--text-muted);">${d.period_start}<br>to ${d.period_end}</td>
+                    <td>
+                      <strong style="font-size: 0.95rem; color: #ef4444;">₹${(d.balance_due || 0).toLocaleString('en-IN')}</strong>
+                      <div style="font-size: 0.7rem; color: var(--text-muted);">Total: ₹${(d.total_amount || 0).toLocaleString('en-IN')}</div>
+                    </td>
+                    <td>
+                      <div style="font-weight: 700; font-size: 0.82rem;">${d.due_date}</div>
+                      <span class="badge ${badgeClass}" style="${badgeStyle} font-size: 0.72rem; margin-top: 0.2rem; display: inline-block;">
+                        <i class="fa-solid fa-circle-exclamation"></i> ${d.urgency_label}
+                      </span>
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                      <div style="display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center;">
+                        <!-- Send Email Button with PDF -->
+                        <button type="button" class="btn btn-email btn-sm btn-due-send-email" 
+                          data-id="${d.id}" 
+                          data-email="${d.owner_email || ''}" 
+                          data-school="${d.school_name}"
+                          data-num="${d.invoice_number}"
+                          title="Send Official PDF Invoice & Payment Notice via Email to ${d.owner_email}">
+                          <i class="fa-solid fa-envelope"></i> Send Email
+                        </button>
+
+                        <!-- Send WhatsApp Message Button -->
+                        ${d.whatsapp_url ? `
+                          <a href="${d.whatsapp_url}" target="_blank" rel="noopener noreferrer" 
+                            class="btn btn-whatsapp btn-sm" 
+                            title="Open WhatsApp with Pre-filled Payment Notice to ${d.owner_phone}">
+                            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                          </a>
+                        ` : `
+                          <button type="button" class="btn btn-secondary btn-sm" disabled title="No valid phone number for WhatsApp">
+                            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                          </button>
+                        `}
+
+                        <!-- View PDF Invoice -->
+                        <a href="/api/v1/invoices/${d.id}/pdf" target="_blank" 
+                          class="btn btn-secondary btn-sm" 
+                          title="View / Download Official Tax Invoice PDF">
+                          <i class="fa-regular fa-file-pdf"></i> PDF
+                        </a>
+
+                        <!-- Mark Payment Complete Button -->
+                        <button type="button" class="btn btn-success btn-sm btn-due-complete-pay" 
+                          data-id="${d.id}" 
+                          data-num="${d.invoice_number}" 
+                          data-balance="${d.balance_due}"
+                          data-school="${d.school_name}"
+                          title="Confirm Payment Settlement (Automatically sends receipt email & stamped PDF)">
+                          <i class="fa-solid fa-check"></i> Payment Complete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      // Bind Email Sending Listeners
+      container.querySelectorAll('.btn-due-send-email').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const invId = btn.getAttribute('data-id');
+          const email = btn.getAttribute('data-email');
+          const invNum = btn.getAttribute('data-num');
+
+          if (!email) {
+            showToast('School does not have an owner email configured', 'warning');
+            return;
+          }
+
+          const originalHtml = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+
+          try {
+            const sendRes = await api(`/invoices/${invId}/send-email`, {
+              method: 'POST',
+              body: JSON.stringify({ message: 'Upcoming subscription payment due notice' })
+            });
+
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Emailed';
+            btn.style.backgroundColor = '#10b981';
+            showToast(`Invoice ${invNum} and PDF attachment successfully emailed to ${email}!`, 'success');
+          } catch (err) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            showToast(`Failed to dispatch email: ${err.message}`, 'error');
+          }
+        });
+      });
+
+      // Bind Payment Complete Listeners
+      container.querySelectorAll('.btn-due-complete-pay').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          const num = btn.getAttribute('data-num');
+          const balance = btn.getAttribute('data-balance');
+          openRecordPaymentModal(id, num, balance);
+        });
+      });
+
+    } catch (err) {
+      container.innerHTML = `<div class="alert-box alert-danger">Failed to load payment dues: ${err.message}</div>`;
     }
   }
 
@@ -2213,40 +2452,86 @@
             </button>
           </td></tr>`;
         } else {
-          invTbody.innerHTML = invRes.data.map(i => `
-            <tr>
-              <td><strong>${i.invoice_number}</strong></td>
-              <td>
-                <strong>${i.school_name}</strong>
-                <div style="font-size: 0.7rem; color: var(--text-muted);">${i.school_code}</div>
-              </td>
-              <td><span class="badge badge-trial">${i.billing_cycle}</span></td>
-              <td style="font-size: 0.75rem;">${i.period_start} to ${i.period_end}</td>
-              <td>${i.issue_date}</td>
-              <td>${i.due_date}</td>
-              <td><strong>₹${i.total_amount.toLocaleString()}</strong></td>
-              <td style="color: ${i.balance_due > 0 ? '#ef4444' : '#10b981'}; font-weight: 700;">
-                ₹${i.balance_due.toLocaleString()}
-              </td>
-              <td>
-                <span class="badge ${i.status === 'PAID' ? 'badge-paid' : i.status === 'OVERDUE' ? 'badge-overdue' : 'badge-pending'}">
-                  ${i.status}
-                </span>
-              </td>
-              <td style="text-align: right; white-space: nowrap;">
-                ${i.balance_due > 0 ? `
-                  <button class="btn btn-success btn-sm btn-record-pay" data-id="${i.id}" data-num="${i.invoice_number}" data-balance="${i.balance_due}">
-                    <i class="fa-solid fa-dollar-sign"></i> Pay
-                  </button>
-                  <button class="btn btn-secondary btn-sm btn-remind-inv" data-id="${i.id}">
-                    <i class="fa-regular fa-paper-plane"></i> Remind
-                  </button>
-                ` : '<span style="color: #10b981; font-size: 0.75rem;"><i class="fa-solid fa-check"></i> Settled</span>'}
-              </td>
-            </tr>
-          `).join('');
+          invTbody.innerHTML = invRes.data.map(i => {
+            const cleanPhone = (i.owner_phone || '').replace(/[^0-9]/g, '');
+            const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+            const waMsg = encodeURIComponent(
+              `Hello ${i.owner_name || 'School Principal'},\n\n` +
+              `Official payment reminder from Central ERP Command regarding *${i.school_name}*:\n` +
+              `• Invoice: *${i.invoice_number}*\n` +
+              `• Plan: ${i.plan_name || 'Campus Edition'} (${i.billing_cycle})\n` +
+              `• Balance Due: *₹${(i.balance_due || 0).toLocaleString('en-IN')}*\n` +
+              `• Due Date: *${i.due_date}*\n\n` +
+              `*Settlement Details:*\n` +
+              `Bank: HDFC Bank Ltd | A/C: 50200088991122 | IFSC: HDFC0001234\n` +
+              `Instant UPI: centralerp@hdfcbank\n\n` +
+              `Please share payment UTR once transferred.`
+            );
+            const waUrl = phoneWithCountry ? `https://wa.me/${phoneWithCountry}?text=${waMsg}` : null;
 
-          // Attach payment and remind listeners
+            return `
+              <tr>
+                <td><strong style="color: var(--accent-primary); font-family: monospace;">${i.invoice_number}</strong></td>
+                <td>
+                  <strong>${i.school_name}</strong>
+                  <div style="font-size: 0.7rem; color: var(--text-muted); display: flex; gap: 0.4rem; margin-top: 0.1rem;">
+                    <span>${i.school_code}</span>
+                    <span>• ${i.owner_email || 'No email'}</span>
+                  </div>
+                </td>
+                <td><span class="badge badge-trial">${i.billing_cycle}</span></td>
+                <td style="font-size: 0.75rem;">${i.period_start}<br>to ${i.period_end}</td>
+                <td>${i.issue_date}</td>
+                <td><strong>${i.due_date}</strong></td>
+                <td><strong>₹${i.total_amount.toLocaleString()}</strong></td>
+                <td style="color: ${i.balance_due > 0 ? '#ef4444' : '#10b981'}; font-weight: 700;">
+                  ₹${i.balance_due.toLocaleString()}
+                </td>
+                <td>
+                  <span class="badge ${i.status === 'PAID' ? 'badge-paid' : i.status === 'OVERDUE' ? 'badge-overdue' : 'badge-pending'}">
+                    ${i.status}
+                  </span>
+                </td>
+                <td style="text-align: right; white-space: nowrap;">
+                  <div style="display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center;">
+                    <!-- Download Official PDF -->
+                    <a href="/api/v1/invoices/${i.id}/pdf" target="_blank" class="btn btn-secondary btn-sm" title="Download Official Tax Invoice PDF">
+                      <i class="fa-regular fa-file-pdf"></i> PDF
+                    </a>
+
+                    <!-- Send Email Button -->
+                    <button type="button" class="btn btn-email btn-sm btn-inv-email" 
+                      data-id="${i.id}" 
+                      data-email="${i.owner_email || ''}" 
+                      data-num="${i.invoice_number}"
+                      title="Send Invoice & Official PDF via Email to ${i.owner_email}">
+                      <i class="fa-solid fa-envelope"></i> Email
+                    </button>
+
+                    <!-- WhatsApp Button -->
+                    ${waUrl ? `
+                      <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp btn-sm" title="Send WhatsApp Payment Notice to ${i.owner_phone}">
+                        <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                      </a>
+                    ` : `
+                      <button type="button" class="btn btn-secondary btn-sm" disabled title="No phone configured">
+                        <i class="fa-brands fa-whatsapp"></i>
+                      </button>
+                    `}
+
+                    <!-- Pay / Settled -->
+                    ${i.balance_due > 0 ? `
+                      <button type="button" class="btn btn-success btn-sm btn-record-pay" data-id="${i.id}" data-num="${i.invoice_number}" data-balance="${i.balance_due}" title="Mark Payment Complete (Auto-emails receipt & PDF)">
+                        <i class="fa-solid fa-dollar-sign"></i> Pay
+                      </button>
+                    ` : '<span class="badge badge-paid" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;"><i class="fa-solid fa-check"></i> Paid</span>'}
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+
+          // Attach payment listeners
           document.querySelectorAll('.btn-record-pay').forEach(b => {
             b.addEventListener('click', () => {
               openRecordPaymentModal(
@@ -2257,11 +2542,35 @@
             });
           });
 
-          document.querySelectorAll('.btn-remind-inv').forEach(b => {
+          // Attach email invoice listeners
+          document.querySelectorAll('.btn-inv-email').forEach(b => {
             b.addEventListener('click', async () => {
               const id = b.getAttribute('data-id');
-              const res = await api(`/invoices/${id}/remind`, { method: 'POST' });
-              showToast(res.message, 'success');
+              const email = b.getAttribute('data-email');
+              const num = b.getAttribute('data-num');
+
+              if (!email) {
+                showToast('This school has no owner email address configured', 'warning');
+                return;
+              }
+
+              const orig = b.innerHTML;
+              b.disabled = true;
+              b.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+              try {
+                const res = await api(`/invoices/${id}/send-email`, {
+                  method: 'POST',
+                  body: JSON.stringify({ message: 'Official subscription invoice notice' })
+                });
+                b.innerHTML = '<i class="fa-solid fa-check"></i> Sent';
+                b.style.backgroundColor = '#10b981';
+                showToast(`Invoice ${num} and PDF attachment emailed to ${email}!`, 'success');
+              } catch (err) {
+                b.disabled = false;
+                b.innerHTML = orig;
+                showToast(`Failed to send email: ${err.message}`, 'error');
+              }
             });
           });
         }
@@ -3694,6 +4003,61 @@ CENTRAL_HMAC_SECRET=${res.data.hmacSecret}`;
       });
     }
 
+    // Invoice dynamic calculation helper
+    function triggerInvoiceFormCalculation() {
+      const schoolId = document.getElementById('inv-school-select')?.value;
+      const cycle = document.getElementById('inv-billing-cycle')?.value || 'YEARLY';
+      const school = (state.schools || []).find(s => s.id === schoolId);
+
+      const startInput = document.getElementById('inv-period-start');
+      const endInput = document.getElementById('inv-period-end');
+      const dueInput = document.getElementById('inv-due-date');
+      const subtotalInput = document.getElementById('inv-subtotal');
+      const formulaSpan = document.getElementById('inv-calc-formula');
+      const amountSpan = document.getElementById('inv-calc-amount');
+
+      const today = new Date();
+      const startDateStr = today.toISOString().slice(0, 10);
+      if (startInput && !startInput.value) startInput.value = startDateStr;
+
+      let months = 12;
+      if (cycle === 'MONTHLY') months = 1;
+      else if (cycle === 'QUARTERLY') months = 3;
+      else if (cycle === 'HALF_YEARLY') months = 6;
+      else if (cycle === 'YEARLY') months = 12;
+
+      const endDate = new Date(today);
+      endDate.setMonth(endDate.getMonth() + months);
+      if (endInput) endInput.value = endDate.toISOString().slice(0, 10);
+
+      const dueDate = new Date(today);
+      dueDate.setDate(dueDate.getDate() + 7);
+      if (dueInput && !dueInput.value) dueInput.value = dueDate.toISOString().slice(0, 10);
+
+      if (school) {
+        let subtotal = 0;
+        let formula = '';
+        if (school.pricing_model === 'PER_STUDENT') {
+          const students = school.latest_student_count || 500;
+          const rate = school.price_per_student || 25.0;
+          subtotal = Math.round(students * rate * months);
+          formula = `${students} students × ₹${rate}/student/mo × ${months} mo(s)`;
+        } else {
+          const annual = school.calculated_subscription_amount || school.custom_price || 300000;
+          const moRate = annual / 12;
+          subtotal = Math.round(moRate * months);
+          formula = `Flat Tier (₹${Math.round(moRate).toLocaleString('en-IN')}/mo) × ${months} mo(s)`;
+        }
+
+        if (subtotalInput) subtotalInput.value = subtotal;
+        if (formulaSpan) formulaSpan.textContent = formula;
+        if (amountSpan) amountSpan.textContent = `₹${subtotal.toLocaleString('en-IN')}`;
+      }
+    }
+
+    document.getElementById('inv-school-select')?.addEventListener('change', triggerInvoiceFormCalculation);
+    document.getElementById('inv-billing-cycle')?.addEventListener('change', triggerInvoiceFormCalculation);
+
     // Generate Invoice Form
     const invForm = document.getElementById('form-generate-invoice');
     const invSubmit = document.getElementById('btn-submit-generate-invoice');
@@ -3704,7 +4068,7 @@ CENTRAL_HMAC_SECRET=${res.data.hmacSecret}`;
         const body = Object.fromEntries(formData.entries());
 
         try {
-          showToast('Generating invoice...', 'info');
+          showToast('Generating official tax invoice...', 'info');
           const res = await api('/invoices', {
             method: 'POST',
             body: JSON.stringify(body)
@@ -3712,16 +4076,17 @@ CENTRAL_HMAC_SECRET=${res.data.hmacSecret}`;
 
           closeModal('modal-generate-invoice');
           invForm.reset();
-          showToast(`Invoice ${res.data.invoiceNum} created for ₹${res.data.totalAmount.toLocaleString()}`, 'success');
+          showToast(`Invoice ${res.data.invoiceNum} created for ₹${res.data.totalAmount.toLocaleString('en-IN')}!`, 'success');
           await loadInitialData();
-          renderInvoices();
+          if (state.activeTab === 'invoices') renderInvoices();
+          if (state.activeTab === 'overview') renderOverview();
         } catch (err) {
           showToast(err.message, 'error');
         }
       });
     }
 
-    // Record Payment Form
+    // Record Payment Form (With Automatic Receipt & Stamped PDF Email)
     const payForm = document.getElementById('form-record-payment');
     const paySubmit = document.getElementById('btn-submit-record-payment');
     if (paySubmit && payForm) {
@@ -3731,8 +4096,12 @@ CENTRAL_HMAC_SECRET=${res.data.hmacSecret}`;
         const formData = new FormData(payForm);
         const body = Object.fromEntries(formData.entries());
 
+        const origHtml = paySubmit.innerHTML;
+        paySubmit.disabled = true;
+        paySubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing & Emailing Receipt...';
+
         try {
-          showToast('Recording payment in financial ledger...', 'info');
+          showToast('Recording payment and emailing settlement receipt...', 'info');
           const res = await api(`/invoices/${invId}/payments`, {
             method: 'POST',
             body: JSON.stringify(body)
@@ -3740,10 +4109,21 @@ CENTRAL_HMAC_SECRET=${res.data.hmacSecret}`;
 
           closeModal('modal-record-payment');
           payForm.reset();
-          showToast(`Payment receipt ${res.data.paymentNum} recorded successfully!`, 'success');
+          paySubmit.disabled = false;
+          paySubmit.innerHTML = origHtml;
+
+          if (res.data?.emailDispatched) {
+            showToast(`Payment receipt ${res.data.paymentNum} recorded! Stamped PDF invoice and receipt emailed to ${res.data.emailRecipient}.`, 'success');
+          } else {
+            showToast(`Payment receipt ${res.data.paymentNum} recorded successfully!`, 'success');
+          }
+
           await loadInitialData();
-          renderInvoices();
+          if (state.activeTab === 'invoices') renderInvoices();
+          if (state.activeTab === 'overview') renderOverview();
         } catch (err) {
+          paySubmit.disabled = false;
+          paySubmit.innerHTML = origHtml;
           showToast(err.message, 'error');
         }
       });

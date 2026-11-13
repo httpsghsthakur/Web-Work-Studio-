@@ -54,6 +54,25 @@ function initSchema() {
       db.exec("ALTER TABLE schools ADD COLUMN approved_at TEXT;");
     }
 
+    // Ensure email_logs table exists
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS email_logs (
+        id TEXT PRIMARY KEY,
+        recipient_email TEXT NOT NULL,
+        recipient_name TEXT,
+        school_id TEXT REFERENCES schools(id) ON DELETE SET NULL,
+        invoice_id TEXT REFERENCES invoices(id) ON DELETE SET NULL,
+        payment_id TEXT REFERENCES payments(id) ON DELETE SET NULL,
+        email_type TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        body_preview TEXT,
+        has_attachment INTEGER DEFAULT 1,
+        status TEXT DEFAULT 'SENT',
+        sent_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_email_logs_invoice ON email_logs(invoice_id);
+    `);
+
     // Ensure 24h census reconciliation automation rule exists
     const existingRule = db.prepare("SELECT id FROM automation_rules WHERE code = 'RULE_24H_STUDENT_CENSUS_CHECK'").get();
     if (!existingRule) {

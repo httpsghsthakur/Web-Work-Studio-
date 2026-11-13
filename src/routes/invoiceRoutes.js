@@ -4,6 +4,8 @@ const crypto = require('crypto');
 const db = require('../database/db');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { logAudit } = require('../middleware/auditLogger');
+const pdfInvoiceService = require('../services/pdfInvoiceService');
+const emailService = require('../services/emailService');
 
 // GET /api/v1/invoices - List invoices with filters
 router.get('/', authenticateToken, (req, res) => {
@@ -16,6 +18,7 @@ router.get('/', authenticateToken, (req, res) => {
         s.name as school_name,
         s.code as school_code,
         s.owner_email,
+        s.owner_phone,
         p.name as plan_name
       FROM invoices i
       JOIN schools s ON i.school_id = s.id
@@ -37,6 +40,168 @@ router.get('/', authenticateToken, (req, res) => {
 
     const invoices = db.all(sql, ...params);
     res.json({ success: true, count: invoices.length, data: invoices });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/v1/invoices/upcoming-dues - Upcoming payment due alerts (next 2-3 days & overdue)
+router.get('/upcoming-dues', authenticateToken, (req, res) => {
+  try {
+    const { cycle, max_days = 3 } = req.query;
+    const maxDaysNum = parseFloat(max_days) || 3;
+
+    let sql = `
+      SELECT 
+        i.id,
+        i.invoice_number,
+        i.school_id,
+        i.billing_cycle,
+        i.period_start,
+        i.period_end,
+        i.issue_date,
+        i.due_date,
+        i.subtotal,
+        i.tax_amount,
+        i.total_amount,
+        i.balance_due,
+        i.status,
+        i.reminder_sent_at,
+        s.name as school_name,
+        s.code as school_code,
+        s.remote_school_id,
+        s.owner_name,
+        s.owner_email,
+        s.owner_phone,
+        s.pricing_model,
+        s.price_per_student,
+        s.calculated_subscription_amount,
+        p.name as plan_name,
+        CAST(ROUND(julianday(i.due_date) - julianday('now')) AS INTEGER) as days_remaining
+      FROM invoices i
+      JOIN schools s ON i.school_id = s.id
+      LEFT JOIN subscription_plans p ON i.plan_id = p.id
+      WHERE i.status IN ('PENDING', 'PARTIALLY_PAID', 'OVERDUE')
+        AND i.balance_due > 0
+        AND (julianday(i.due_date) - julianday('now')) <= ?
+    `;
+    const params = [maxDaysNum];
+
+    if (cycle && cycle !== 'ALL') {
+      sql += ' AND i.billing_cycle = ?';
+      params.push(cycle);
+    }
+
+    sql += ' ORDER BY days_remaining ASC, i.due_date ASC';
+
+    const rawDues = db.all(sql, ...params);
+
+    const formatted = rawDues.map(d => {
+      let urgency = 'NORMAL';
+      let urgencyLabel = `Due in ${d.days_remaining} days`;
+      if (d.days_remaining < 0) {
+        urgency = 'OVERDUE';
+        urgencyLabel = `Overdue by ${Math.abs(d.days_remaining)} days`;
+      } else if (d.days_remaining === 0) {
+        urgency = 'TODAY';
+        urgencyLabel = 'Due Today';
+      } else if (d.days_remaining === 1) {
+        urgency = 'TOMORROW';
+        urgencyLabel = 'Due Tomorrow';
+      } else if (d.days_remaining <= 3) {
+        urgency = 'UPCOMING';
+        urgencyLabel = `Due in ${d.days_remaining} days`;
+      }
+
+      // Pre-format WhatsApp Click-to-Chat URL
+      const cleanPhone = (d.owner_phone || '').replace(/[^0-9]/g, '');
+      const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+      
+      const waText = encodeURIComponent(
+        `Hello ${d.owner_name || 'School Principal'},\n\n` +
+        `This is an official payment notice from Central ERP Command regarding *${d.school_name}*.\n\n` +
+        `• Invoice No: *${d.invoice_number}*\n` +
+        `• Plan: ${d.plan_name || 'Growth Academy Pro'} (${d.billing_cycle})\n` +
+        `• Total Amount Due: *₹${(d.balance_due || 0).toLocaleString('en-IN')}*\n` +
+        `• Due Date: *${d.due_date}* (${urgencyLabel})\n\n` +
+        `*Settlement Bank Details:*\n` +
+        `Bank: HDFC Bank Ltd (Current Account)\n` +
+        `Beneficiary: Central ERP Command Solutions Pvt Ltd\n` +
+        `A/C: 50200088991122 | IFSC: HDFC0001234\n` +
+        `Instant UPI VPA: centralerp@hdfcbank\n\n` +
+        `Please share the payment UTR / reference once transferred to update your account.`
+      );
+
+      const waUrl = phoneWithCountry ? `https://wa.me/${phoneWithCountry}?text=${waText}` : null;
+
+      return {
+        ...d,
+        urgency,
+        urgency_label: urgencyLabel,
+        whatsapp_url: waUrl,
+        whatsapp_phone: phoneWithCountry
+      };
+    });
+
+    res.json({
+      success: true,
+      count: formatted.length,
+      cycleFilter: cycle || 'ALL',
+      data: formatted
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/v1/invoices/all-payments - List all payment transactions
+router.get('/data/payments', authenticateToken, (req, res) => {
+  try {
+    const payments = db.all(`
+      SELECT p.*, i.invoice_number, s.name as school_name, s.code as school_code
+      FROM payments p
+      JOIN schools s ON p.school_id = s.id
+      LEFT JOIN invoices i ON p.invoice_id = i.id
+      ORDER BY p.payment_date DESC
+    `);
+    res.json({ success: true, count: payments.length, data: payments });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/v1/invoices/:id/pdf - Stream official PDF invoice
+router.get('/:id/pdf', authenticateToken, (req, res) => {
+  try {
+    pdfInvoiceService.generateInvoicePdfStream(req.params.id, res);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/v1/invoices/:id/send-email - Send official PDF invoice via email to school owner
+router.post('/:id/send-email', authenticateToken, requireRole(['SUPER_ADMIN', 'FINANCE_OFFICER', 'OPERATIONS']), async (req, res) => {
+  try {
+    const result = await emailService.sendInvoiceEmail({
+      invoiceId: req.params.id,
+      customMessage: req.body.message
+    });
+
+    logAudit({
+      userId: req.user.id,
+      userEmail: req.user.email,
+      action: 'SEND_INVOICE_EMAIL',
+      targetType: 'INVOICE',
+      targetId: req.params.id,
+      details: { recipient: result.recipient, invoiceNumber: result.invoiceNumber },
+      ip: req.ip
+    });
+
+    res.json({
+      success: true,
+      message: `Invoice ${result.invoiceNumber} and official PDF attachment successfully emailed to ${result.recipient}!`,
+      data: result
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -143,8 +308,8 @@ router.post('/', authenticateToken, requireRole(['SUPER_ADMIN', 'FINANCE_OFFICER
   }
 });
 
-// POST /api/v1/invoices/:id/payments - Record manual payment
-router.post('/:id/payments', authenticateToken, requireRole(['SUPER_ADMIN', 'FINANCE_OFFICER']), (req, res) => {
+// POST /api/v1/invoices/:id/payments - Record payment and automatically send payment receipt email with stamped PDF
+router.post('/:id/payments', authenticateToken, requireRole(['SUPER_ADMIN', 'FINANCE_OFFICER']), async (req, res) => {
   try {
     const { amount, payment_method = 'BANK_TRANSFER', transaction_reference, notes, payment_date = new Date().toISOString().slice(0, 10) } = req.body;
 
@@ -203,15 +368,35 @@ router.post('/:id/payments', authenticateToken, requireRole(['SUPER_ADMIN', 'FIN
       ip: req.ip
     });
 
+    // Auto-dispatch payment receipt confirmation email with updated PDF
+    let emailDispatched = false;
+    let emailRecipient = null;
+    let emailError = null;
+
+    try {
+      const emailResult = await emailService.sendPaymentReceiptEmail({
+        invoiceId: invoice.id,
+        paymentId
+      });
+      emailDispatched = true;
+      emailRecipient = emailResult.recipient;
+    } catch (emlErr) {
+      console.warn('[Payment Receipt Email Dispatch Error]', emlErr.message);
+      emailError = emlErr.message;
+    }
+
     res.json({
       success: true,
-      message: 'Payment recorded successfully',
+      message: `Payment of ₹${payAmount.toLocaleString('en-IN')} recorded successfully!${emailDispatched ? ` Official receipt and stamped PDF invoice emailed to ${emailRecipient}.` : ''}`,
       data: {
         paymentId,
         paymentNum,
         paidAmount: payAmount,
         remainingBalance: newBalance,
-        invoiceStatus: newStatus
+        invoiceStatus: newStatus,
+        emailDispatched,
+        emailRecipient,
+        emailError
       }
     });
   } catch (err) {
@@ -220,54 +405,22 @@ router.post('/:id/payments', authenticateToken, requireRole(['SUPER_ADMIN', 'FIN
 });
 
 // POST /api/v1/invoices/:id/remind - Send payment reminder
-router.post('/:id/remind', authenticateToken, requireRole(['SUPER_ADMIN', 'FINANCE_OFFICER']), (req, res) => {
+router.post('/:id/remind', authenticateToken, requireRole(['SUPER_ADMIN', 'FINANCE_OFFICER']), async (req, res) => {
   try {
-    const invoice = db.get(`
-      SELECT i.*, s.name as school_name, s.owner_email 
-      FROM invoices i 
-      JOIN schools s ON i.school_id = s.id 
-      WHERE i.id = ?
-    `, req.params.id);
-
-    if (!invoice) {
-      return res.status(404).json({ success: false, error: 'Invoice not found' });
-    }
-
-    db.run("UPDATE invoices SET reminder_sent_at = datetime('now') WHERE id = ?", invoice.id);
-
-    // Create system notification
-    db.run(`
-      INSERT INTO system_notifications (id, type, title, message, severity, school_id, action_url)
-      VALUES (?, 'PAYMENT_REMINDER_SENT', 'Payment Reminder Dispatched', ?, 'INFO', ?, '/invoices')
-    `,
-      `notif-rem-${Date.now()}`,
-      `Payment reminder for ${invoice.invoice_number} (₹${invoice.balance_due.toLocaleString()}) dispatched to ${invoice.owner_email}.`,
-      invoice.school_id
-    );
+    const result = await emailService.sendInvoiceEmail({
+      invoiceId: req.params.id,
+      customMessage: 'Kindly arrange settlement of this subscription invoice at your earliest convenience to maintain continuous service.'
+    });
 
     res.json({
       success: true,
-      message: `Reminder successfully sent to ${invoice.owner_email} for ${invoice.invoice_number}`
+      message: `Payment reminder and PDF invoice successfully emailed to ${result.recipient} for ${result.invoiceNumber}`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// GET /api/v1/invoices/all-payments - List all payment transactions
-router.get('/data/payments', authenticateToken, (req, res) => {
-  try {
-    const payments = db.all(`
-      SELECT p.*, i.invoice_number, s.name as school_name, s.code as school_code
-      FROM payments p
-      JOIN schools s ON p.school_id = s.id
-      LEFT JOIN invoices i ON p.invoice_id = i.id
-      ORDER BY p.payment_date DESC
-    `);
-    res.json({ success: true, count: payments.length, data: payments });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+module.exports = router;
 
 module.exports = router;

@@ -684,12 +684,40 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
             <div class="form-group">
+              <label class="form-label">Payment / Billing Cycle *</label>
+              <select class="form-select" name="billing_cycle" id="inv-billing-cycle">
+                <option value="MONTHLY">Monthly (1 Month)</option>
+                <option value="QUARTERLY">Quarterly (3 Months)</option>
+                <option value="HALF_YEARLY">Half-Yearly (6 Months)</option>
+                <option value="YEARLY" selected>Yearly (12 Months)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Due Date *</label>
+              <input type="date" class="form-control" name="due_date" id="inv-due-date" required>
+            </div>
+          </div>
+
+          <!-- Dynamic Pricing Context & Breakdown Badge -->
+          <div id="inv-calc-preview" style="background: rgba(37,99,235,0.08); border: 1px dashed var(--accent-primary); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.8rem; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <span style="color: var(--text-muted);">Dynamic Rate Calculation:</span>
+              <strong id="inv-calc-formula" style="color: var(--text-main); font-family: monospace; display: block;">Select a school to calculate...</strong>
+            </div>
+            <div style="text-align: right;">
+              <span style="color: var(--text-muted); font-size: 0.72rem; display: block;">Computed Subtotal:</span>
+              <strong id="inv-calc-amount" style="font-size: 1.1rem; color: #10b981;">₹0</strong>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
               <label class="form-label">Period Start *</label>
-              <input type="date" class="form-control" name="period_start" required>
+              <input type="date" class="form-control" name="period_start" id="inv-period-start" required>
             </div>
             <div class="form-group">
               <label class="form-label">Period End *</label>
-              <input type="date" class="form-control" name="period_end" required>
+              <input type="date" class="form-control" name="period_end" id="inv-period-end" required>
             </div>
           </div>
 
@@ -705,11 +733,6 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Payment Due Date *</label>
-            <input type="date" class="form-control" name="due_date" required>
-          </div>
-
-          <div class="form-group">
             <label class="form-label">Invoice Notes</label>
             <textarea class="form-control" name="notes" rows="2" placeholder="Subscription period details, payment bank instructions..."></textarea>
           </div>
@@ -717,7 +740,9 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary modal-close-btn">Cancel</button>
-        <button class="btn btn-primary" id="btn-submit-generate-invoice">Generate & Send Invoice</button>
+        <button class="btn btn-primary" id="btn-submit-generate-invoice">
+          <i class="fa-solid fa-file-circle-plus"></i> Generate & Issue Invoice
+        </button>
       </div>
     </div>
   </div>
@@ -772,11 +797,18 @@
             <label class="form-label">Internal Notes</label>
             <input type="text" class="form-control" name="notes" placeholder="Verified against bank reconciliation statement">
           </div>
+
+          <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 6px; padding: 0.75rem; font-size: 0.78rem; color: #10b981; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-envelope-circle-check" style="font-size: 1.1rem; flex-shrink: 0;"></i>
+            <span><strong>Automated Confirmation:</strong> On payment recording, an official settlement receipt and stamped PDF invoice will be automatically emailed to the school owner.</span>
+          </div>
         </form>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary modal-close-btn">Cancel</button>
-        <button class="btn btn-success" id="btn-submit-record-payment">Confirm Payment Receipt</button>
+        <button class="btn btn-success" id="btn-submit-record-payment">
+          <i class="fa-solid fa-check-circle"></i> Confirm Payment & Email Receipt
+        </button>
       </div>
     </div>
   </div>

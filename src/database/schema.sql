@@ -252,6 +252,22 @@ CREATE TABLE IF NOT EXISTS erp_telemetry_history (
     ping_timestamp TEXT DEFAULT (datetime('now'))
 );
 
+-- 13. Dispatched Email Communications & Delivery Receipts
+CREATE TABLE IF NOT EXISTS email_logs (
+    id TEXT PRIMARY KEY,
+    recipient_email TEXT NOT NULL,
+    recipient_name TEXT,
+    school_id TEXT REFERENCES schools(id) ON DELETE SET NULL,
+    invoice_id TEXT REFERENCES invoices(id) ON DELETE SET NULL,
+    payment_id TEXT REFERENCES payments(id) ON DELETE SET NULL,
+    email_type TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    body_preview TEXT,
+    has_attachment INTEGER DEFAULT 1,
+    status TEXT DEFAULT 'SENT',
+    sent_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Indices for high performance queries
 CREATE INDEX IF NOT EXISTS idx_schools_status ON schools(status);
 CREATE INDEX IF NOT EXISTS idx_schools_plan ON schools(plan_id);
@@ -264,3 +280,4 @@ CREATE INDEX IF NOT EXISTS idx_security_events_school ON security_events(school_
 CREATE INDEX IF NOT EXISTS idx_security_events_severity ON security_events(severity);
 CREATE INDEX IF NOT EXISTS idx_school_metrics_school ON school_sync_metrics(school_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON system_notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_email_logs_invoice ON email_logs(invoice_id);

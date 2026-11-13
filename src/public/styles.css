@@ -572,6 +572,28 @@ body {
   background-color: #059669;
 }
 
+.btn-whatsapp {
+  background-color: #25D366;
+  color: white;
+  border: none;
+  font-weight: 600;
+}
+.btn-whatsapp:hover {
+  background-color: #20ba5a;
+  color: white;
+}
+
+.btn-email {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  font-weight: 600;
+}
+.btn-email:hover {
+  background-color: #1d4ed8;
+  color: white;
+}
+
 /* Modal Dialog */
 .modal-overlay {
   position: fixed;
