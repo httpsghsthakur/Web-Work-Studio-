@@ -11,7 +11,8 @@ const testSuites = [
   './test_remote_control.js',
   './test_financial_invoicing.js',
   './test_sync_and_bi.js',
-  './test_per_student_pricing.js'
+  './test_per_student_pricing.js',
+  './test_credentials_and_approval_flow.js'
 ];
 
 let passedCount = 0;

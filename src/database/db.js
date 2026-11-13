@@ -41,6 +41,18 @@ function initSchema() {
     if (!columns.includes('data_access_approved')) {
       db.exec("ALTER TABLE schools ADD COLUMN data_access_approved INTEGER DEFAULT 1;");
     }
+    if (!columns.includes('approval_status')) {
+      db.exec("ALTER TABLE schools ADD COLUMN approval_status TEXT DEFAULT 'APPROVED';");
+    }
+    if (!columns.includes('approval_token')) {
+      db.exec("ALTER TABLE schools ADD COLUMN approval_token TEXT;");
+    }
+    if (!columns.includes('approval_requested_at')) {
+      db.exec("ALTER TABLE schools ADD COLUMN approval_requested_at TEXT;");
+    }
+    if (!columns.includes('approved_at')) {
+      db.exec("ALTER TABLE schools ADD COLUMN approved_at TEXT;");
+    }
 
     // Ensure 24h census reconciliation automation rule exists
     const existingRule = db.prepare("SELECT id FROM automation_rules WHERE code = 'RULE_24H_STUDENT_CENSUS_CHECK'").get();

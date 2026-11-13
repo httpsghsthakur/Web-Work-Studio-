@@ -237,38 +237,70 @@
       <div class="modal-body">
         <form id="form-register-school">
 
-          <!-- 1. Remote School ERP Connection, School ID & Live Handshake -->
+          <!-- 1. Auto-Generated School ID & Cryptographic Integration Keys -->
+          <div style="background: var(--bg-card-header); border: 1px solid var(--border-main); border-radius: 8px; padding: 1.1rem; margin-bottom: 1.15rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
+              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--accent-primary);">
+                <i class="fa-solid fa-key"></i> Auto-Generated School ID & Integration Keys
+              </label>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-regenerate-credentials" title="Generate New School ID & Fresh Keys" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">
+                <i class="fa-solid fa-arrows-rotate"></i> Regenerate Keys
+              </button>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+              Central Command automatically provisions this unique School ID and cryptographic credentials for this school ERP installation.
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 0.75rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem;">Generated School ID *</label>
+                <div style="display: flex; gap: 0.35rem;">
+                  <input type="text" class="form-control" name="school_id" id="reg-school-id" readonly style="font-family: monospace; font-weight: 700; background: var(--bg-card); color: var(--accent-primary);">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-school-id" title="Copy School ID" style="padding: 0 0.65rem;"><i class="fa-regular fa-copy"></i></button>
+                </div>
+                <input type="hidden" name="code" id="reg-school-code">
+                <input type="hidden" name="remote_school_id" id="reg-remote-school-id">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem;">API Key (Public Connector Key) *</label>
+                <div style="display: flex; gap: 0.35rem;">
+                  <input type="text" class="form-control" name="api_key" id="reg-api-key" readonly style="font-family: monospace; font-size: 0.75rem; background: var(--bg-card);">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-api-key" title="Copy API Key" style="padding: 0 0.65rem;"><i class="fa-regular fa-copy"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 0.75rem;">Secret Key (HMAC Signature Token) *</label>
+              <div style="display: flex; gap: 0.35rem;">
+                <input type="password" class="form-control" name="hmac_secret" id="reg-hmac-secret" readonly style="font-family: monospace; font-size: 0.75rem; background: var(--bg-card);">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-hmac-visibility" title="Show/Hide Secret" style="padding: 0 0.65rem;"><i class="fa-regular fa-eye"></i></button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-hmac-secret" title="Copy Secret Key" style="padding: 0 0.65rem;"><i class="fa-regular fa-copy"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Remote School ERP Connection & Send Approval Request -->
           <div style="background: var(--bg-card-header); border: 1px solid var(--border-main); border-radius: 8px; padding: 1.1rem; margin-bottom: 1.15rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
               <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--accent-primary);">
-                <i class="fa-solid fa-satellite-dish"></i> Remote School ERP Connection & School ID
+                <i class="fa-solid fa-satellite-dish"></i> Remote ERP Connection & Approval Handshake
               </label>
               <span class="badge badge-trial" id="remote-probe-badge">
-                <i class="fa-solid fa-circle-question"></i> Awaiting Handshake
+                <i class="fa-solid fa-circle-question"></i> Awaiting Approval Request
               </span>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">School ID (in that School's ERP) *</label>
-                <input type="text" class="form-control" name="remote_school_id" id="reg-remote-school-id" required placeholder="e.g. SCH-001 or TENANT-99">
-                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">Identifier inside that school's database</div>
-              </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem; align-items: flex-end; margin-bottom: 0.75rem;">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">School ERP Base URL *</label>
                 <input type="url" class="form-control" name="erp_url" id="reg-erp-url" required placeholder="https://myschool.schools-erp.cloud">
                 <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">Web domain of that school's ERP</div>
               </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem; align-items: flex-end;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Connector Handshake Token / Secret (Optional)</label>
-                <input type="password" class="form-control" name="erp_auth_token" id="reg-erp-token" placeholder="Optional connector secret key or API token">
-              </div>
               <div>
-                <button type="button" class="btn btn-secondary" id="btn-probe-erp" style="width: 100%; padding: 0.55rem; font-weight: 600; font-size: 0.82rem;">
-                  <i class="fa-solid fa-bolt"></i> Probe & Get Real Data
+                <button type="button" class="btn btn-primary" id="btn-send-approval-request" style="width: 100%; padding: 0.55rem; font-weight: 700; font-size: 0.82rem; background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+                  <i class="fa-solid fa-paper-plane"></i> Send Approval Request
                 </button>
               </div>
             </div>
@@ -277,7 +309,7 @@
             <div id="erp-probe-result" style="display: none; margin-top: 0.9rem; padding: 0.85rem; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); border-radius: 6px; font-size: 0.825rem;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
                 <div style="color: #10b981; font-weight: 700;">
-                  <i class="fa-solid fa-circle-check"></i> Real ERP Handshake Verified
+                  <i class="fa-solid fa-circle-check"></i> Remote Approval Granted & Real Data Verified
                 </div>
                 <span id="probe-source-badge" class="badge badge-active" style="font-size: 0.68rem;">LIVE_DATA</span>
               </div>
@@ -298,9 +330,9 @@
 
               <!-- Explicit Data Ingestion Approval Checkbox -->
               <div style="background: var(--bg-card); border: 1px dashed var(--accent-primary); padding: 0.75rem; border-radius: 6px; display: flex; align-items: flex-start; gap: 0.65rem;">
-                <input type="checkbox" name="data_access_approved" id="reg-data-access-approved" value="1" required style="width: 18px; height: 18px; margin-top: 2px; cursor: pointer;">
+                <input type="checkbox" name="data_access_approved" id="reg-data-access-approved" value="1" required checked style="width: 18px; height: 18px; margin-top: 2px; cursor: pointer;">
                 <label for="reg-data-access-approved" style="font-size: 0.8rem; cursor: pointer; line-height: 1.35; margin-bottom: 0;">
-                  <strong style="color: #ef4444;">Required Approval:</strong> I hereby approve Central Command to ingest and continuously synchronize real student census, faculty counts, and operational records from School ID <span id="probe-confirm-school-id" style="font-family: monospace; font-weight: 700; color: var(--accent-primary);">---</span> under the SaaS Master Service Agreement.
+                  <strong style="color: #10b981;">Approval Confirmed:</strong> Remote School ERP administrator has approved Central Command to ingest and continuously synchronize real student census, faculty counts, and operational records from School ID <span id="probe-confirm-school-id" style="font-family: monospace; font-weight: 700; color: var(--accent-primary);">---</span> under the SaaS Master Service Agreement.
                 </label>
               </div>
             </div>
@@ -312,16 +344,10 @@
               <input type="text" class="form-control" name="name" id="reg-school-name" required placeholder="e.g. Cambridge Global Academy">
             </div>
             <div class="form-group">
-              <label class="form-label">Central Code (Unique identifier) *</label>
-              <input type="text" class="form-control" name="code" id="reg-school-code" required placeholder="e.g. SCH-CAMBRIDGE">
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
               <label class="form-label">City *</label>
               <input type="text" class="form-control" name="city" required placeholder="e.g. Pune">
             </div>
+          </div>
             <div class="form-group">
               <label class="form-label">State *</label>
               <input type="text" class="form-control" name="state" required placeholder="e.g. Maharashtra">
@@ -425,7 +451,83 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary modal-close-btn">Cancel</button>
-        <button class="btn btn-primary" id="btn-submit-register-school">Register & Generate Keys</button>
+        <button class="btn btn-primary" id="btn-submit-register-school">Register School & Save Credentials</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Registration & Credentials Provisioned Success -->
+  <div class="modal-overlay" id="modal-credentials-success">
+    <div class="modal-card" style="max-width: 620px;">
+      <div class="modal-header" style="background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(37,99,235,0.1));">
+        <div class="modal-title" style="color: #10b981;">
+          <i class="fa-solid fa-circle-check" style="margin-right: 0.5rem;"></i> School Registered & ERP Handshake Authorized
+        </div>
+        <button class="btn-icon modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 1.25rem;">
+          <h3 id="succ-school-name" style="margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 700;">School Name</h3>
+          <span class="badge badge-healthy" id="succ-approval-badge"><i class="fa-solid fa-shield-halved"></i> Handshake Approved & Active</span>
+        </div>
+
+        <div style="background: var(--bg-card-header); border: 1px solid var(--border-main); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+          <div style="font-size: 0.8rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--accent-primary);">
+            <i class="fa-solid fa-key"></i> Provisioned Integration Credentials
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.825rem;">
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.72rem; display: block;">School ID:</span>
+              <div style="display: flex; gap: 0.35rem; align-items: center;">
+                <code id="succ-school-id" style="font-size: 0.95rem; font-weight: 700; color: var(--accent-primary); flex: 1;">SCH-XXXXX</code>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-succ-school-id" style="padding: 0.2rem 0.5rem;"><i class="fa-regular fa-copy"></i> Copy</button>
+              </div>
+            </div>
+
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.72rem; display: block;">API Key:</span>
+              <div style="display: flex; gap: 0.35rem; align-items: center;">
+                <code id="succ-api-key" style="font-size: 0.8rem; word-break: break-all; flex: 1;">cc_live_pk_...</code>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-succ-api-key" style="padding: 0.2rem 0.5rem;"><i class="fa-regular fa-copy"></i> Copy</button>
+              </div>
+            </div>
+
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.72rem; display: block;">Secret Key (HMAC):</span>
+              <div style="display: flex; gap: 0.35rem; align-items: center;">
+                <code id="succ-hmac-secret" style="font-size: 0.8rem; word-break: break-all; flex: 1; color: #10b981;">cc_sec_live_...</code>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-succ-hmac-secret" style="padding: 0.2rem 0.5rem;"><i class="fa-regular fa-copy"></i> Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; font-size: 0.825rem;">
+          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 6px; padding: 0.75rem;">
+            <span style="color: var(--text-muted); font-size: 0.72rem; display: block;">Verified Live Students:</span>
+            <strong id="succ-student-count" style="font-size: 1.1rem; color: var(--accent-primary);">0 Students</strong>
+          </div>
+          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 6px; padding: 0.75rem;">
+            <span style="color: var(--text-muted); font-size: 0.72rem; display: block;">Amount to Pay by School:</span>
+            <strong id="succ-calc-amount" style="font-size: 1.1rem; color: #10b981;">₹0 / year</strong>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label class="form-label" style="font-size: 0.75rem; margin: 0;">Remote School ERP Connector Configuration (.env)</label>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-connector-snippet" style="padding: 0.15rem 0.45rem; font-size: 0.72rem;">
+              <i class="fa-regular fa-copy"></i> Copy Config
+            </button>
+          </div>
+          <textarea id="succ-connector-snippet" class="form-control" rows="4" readonly style="font-family: monospace; font-size: 0.75rem; background: #0f172a; color: #38bdf8;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-done-credentials-success" style="width: 100%;">
+          <i class="fa-solid fa-check"></i> Done & Open School Management
+        </button>
       </div>
     </div>
   </div>

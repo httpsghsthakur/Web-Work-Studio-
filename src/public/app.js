@@ -2725,116 +2725,217 @@ for cmd in commands:
 
     updateRegisterCalculatedAmount();
 
-    // Remote ERP Live Census Handshake Probe Button
-    const probeBtn = document.getElementById('btn-probe-erp');
-    if (probeBtn) {
-      probeBtn.addEventListener('click', async () => {
-        const remoteSchoolId = document.getElementById('reg-remote-school-id')?.value.trim();
-        const erpUrl = document.getElementById('reg-erp-url')?.value.trim();
-        const authToken = document.getElementById('reg-erp-token')?.value.trim();
-        const probeResult = document.getElementById('erp-probe-result');
-        const probeBadge = document.getElementById('remote-probe-badge');
-
-        if (!remoteSchoolId) {
-          alert('Please enter the School ID from that school ERP before probing.');
-          document.getElementById('reg-remote-school-id')?.focus();
+    // ------------------------------------------------------------------------
+    // Automatic School ID & Cryptographic Keys Generation
+    // ------------------------------------------------------------------------
+    window.generateRegistrationCredentials = async function() {
+      try {
+        const res = await api('/schools/generate-credentials');
+        if (res.success && res.data) {
+          setRegistrationCredentials(res.data);
           return;
         }
-        if (!erpUrl) {
-          alert('Please enter the School ERP Base URL.');
-          document.getElementById('reg-erp-url')?.focus();
-          return;
-        }
+      } catch (err) {
+        // Fallback to client-side cryptographic generation if API is unreachable
+      }
 
-        probeBtn.disabled = true;
-        probeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Probing ERP...';
+      const randomHex = (len) => {
+        const arr = new Uint8Array(len);
+        crypto.getRandomValues(arr);
+        return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+      };
+      const schoolId = 'SCH-' + randomHex(3).toUpperCase().slice(0, 5);
+      const apiKey = 'cc_live_pk_' + randomHex(12);
+      const hmacSecret = 'cc_sec_live_' + randomHex(24);
+      const approvalToken = 'appr_req_' + randomHex(16);
 
-        try {
-          showToast(`Connecting to School ERP at ${erpUrl} for School ID: ${remoteSchoolId}...`, 'info');
-          const res = await api('/schools/probe-remote-erp', {
-            method: 'POST',
-            body: JSON.stringify({
-              remote_school_id: remoteSchoolId,
-              erp_url: erpUrl,
-              auth_token: authToken
-            })
-          });
+      setRegistrationCredentials({ schoolId, code: schoolId, apiKey, hmacSecret, approvalToken });
+    };
 
-          if (res.success && res.data) {
-            const data = res.data;
-            if (probeResult) probeResult.style.display = 'block';
-            if (probeBadge) {
-              probeBadge.className = 'badge badge-healthy';
-              probeBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Handshake Verified';
-            }
+    function setRegistrationCredentials(creds) {
+      const idEl = document.getElementById('reg-school-id');
+      const codeEl = document.getElementById('reg-school-code');
+      const remoteIdEl = document.getElementById('reg-remote-school-id');
+      const apiKeyEl = document.getElementById('reg-api-key');
+      const hmacSecretEl = document.getElementById('reg-hmac-secret');
+      const confirmIdEl = document.getElementById('probe-confirm-school-id');
 
-            document.getElementById('probe-students-count').textContent = data.totalStudents.toLocaleString();
-            document.getElementById('probe-faculty-count').textContent = `${data.teachers} teachers, ${data.staff} staff`;
-            document.getElementById('probe-attendance-rate').textContent = `${data.attendanceRate}%`;
-            document.getElementById('probe-confirm-school-id').textContent = data.remoteSchoolId;
-            document.getElementById('probe-source-badge').textContent = data.source;
+      if (idEl) idEl.value = creds.schoolId;
+      if (codeEl) codeEl.value = creds.code || creds.schoolId;
+      if (remoteIdEl) remoteIdEl.value = creds.schoolId;
+      if (apiKeyEl) apiKeyEl.value = creds.apiKey;
+      if (hmacSecretEl) hmacSecretEl.value = creds.hmacSecret;
+      if (confirmIdEl) confirmIdEl.textContent = creds.schoolId;
 
-            // Automatically populate real student count into the dynamic pricing input!
-            const initialStudentsInput = document.getElementById('reg-initial-students');
-            if (initialStudentsInput) {
-              initialStudentsInput.value = data.totalStudents;
-            }
-
-            // Suggest school name and code if not already filled
-            const nameInput = document.getElementById('reg-school-name');
-            const codeInput = document.getElementById('reg-school-code');
-            if (nameInput && !nameInput.value.trim()) {
-              nameInput.value = `School Campus (${data.remoteSchoolId})`;
-            }
-            if (codeInput && !codeInput.value.trim()) {
-              codeInput.value = data.remoteSchoolId.toUpperCase().replace(/[^A-Z0-9]/g, '-');
-            }
-
-            // Immediately update the formula and amount to pay
-            updateRegisterCalculatedAmount();
-
-            showToast(`Real ERP data verified! Total Students: ${data.totalStudents}. Please check approval box to authorize.`, 'success');
-          }
-        } catch (err) {
-          showToast(`ERP Probe failed: ${err.message}`, 'error');
-        } finally {
-          probeBtn.disabled = false;
-          probeBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Probe & Get Real Data';
-        }
-      });
+      const probeBadge = document.getElementById('remote-probe-badge');
+      const probeResult = document.getElementById('erp-probe-result');
+      if (probeBadge) {
+        probeBadge.className = 'badge badge-trial';
+        probeBadge.innerHTML = '<i class="fa-solid fa-circle-question"></i> Awaiting Approval Request';
+      }
+      if (probeResult) probeResult.style.display = 'none';
     }
 
+    // Helper: 1-click clipboard copy
+    const copyTextToClipboard = async (text, label) => {
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(`${label} copied to clipboard!`, 'success');
+      } catch {
+        prompt(`Copy ${label}:`, text);
+      }
+    };
+
+    // Regenerate Keys button
+    document.getElementById('btn-regenerate-credentials')?.addEventListener('click', () => {
+      window.generateRegistrationCredentials();
+      showToast('Generated fresh School ID & integration keys.', 'info');
+    });
+
+    // Copy credentials buttons in registration form
+    document.getElementById('btn-copy-school-id')?.addEventListener('click', () => {
+      copyTextToClipboard(document.getElementById('reg-school-id')?.value, 'School ID');
+    });
+    document.getElementById('btn-copy-api-key')?.addEventListener('click', () => {
+      copyTextToClipboard(document.getElementById('reg-api-key')?.value, 'API Key');
+    });
+    document.getElementById('btn-copy-hmac-secret')?.addEventListener('click', () => {
+      copyTextToClipboard(document.getElementById('reg-hmac-secret')?.value, 'HMAC Secret Key');
+    });
+    document.getElementById('btn-toggle-hmac-visibility')?.addEventListener('click', () => {
+      const input = document.getElementById('reg-hmac-secret');
+      const btn = document.getElementById('btn-toggle-hmac-visibility');
+      if (input) {
+        const isPass = input.type === 'password';
+        input.type = isPass ? 'text' : 'password';
+        if (btn) btn.innerHTML = isPass ? '<i class="fa-regular fa-eye-slash"></i>' : '<i class="fa-regular fa-eye"></i>';
+      }
+    });
+
+    // ------------------------------------------------------------------------
+    // Send Approval Request & Get Real Data from School ERP
+    // ------------------------------------------------------------------------
+    const handleSendApproval = async () => {
+      const schoolId = document.getElementById('reg-school-id')?.value.trim();
+      const erpUrl = document.getElementById('reg-erp-url')?.value.trim();
+      const apiKey = document.getElementById('reg-api-key')?.value.trim();
+      const hmacSecret = document.getElementById('reg-hmac-secret')?.value.trim();
+      const schoolName = document.getElementById('reg-school-name')?.value.trim();
+      const probeResult = document.getElementById('erp-probe-result');
+      const probeBadge = document.getElementById('remote-probe-badge');
+      const actionBtn = document.getElementById('btn-send-approval-request') || document.getElementById('btn-probe-erp');
+
+      if (!erpUrl) {
+        alert('Please enter the School ERP Base URL before sending the approval request.');
+        document.getElementById('reg-erp-url')?.focus();
+        return;
+      }
+
+      if (actionBtn) {
+        actionBtn.disabled = true;
+        actionBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending Request & Waiting for Approval...';
+      }
+
+      try {
+        showToast(`Dispatching authorization handshake & approval request to ${erpUrl}...`, 'info');
+        const res = await api('/schools/send-approval-request', {
+          method: 'POST',
+          body: JSON.stringify({
+            school_id: schoolId,
+            erp_url: erpUrl,
+            api_key: apiKey,
+            hmac_secret: hmacSecret,
+            school_name: schoolName
+          })
+        });
+
+        if (res.success && res.data) {
+          const data = res.data;
+          if (probeResult) probeResult.style.display = 'block';
+          if (probeBadge) {
+            probeBadge.className = 'badge badge-healthy';
+            probeBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Approval Granted & Verified';
+          }
+
+          document.getElementById('probe-students-count').textContent = data.totalStudents.toLocaleString();
+          document.getElementById('probe-faculty-count').textContent = `${data.teachers} teachers, ${data.staff} staff`;
+          document.getElementById('probe-attendance-rate').textContent = `${data.attendanceRate}%`;
+          document.getElementById('probe-confirm-school-id').textContent = data.schoolId;
+          document.getElementById('probe-source-badge').textContent = data.source;
+
+          // Automatically set real enrolled students into dynamic pricing input
+          const initialStudentsInput = document.getElementById('reg-initial-students');
+          if (initialStudentsInput) {
+            initialStudentsInput.value = data.totalStudents;
+          }
+
+          // Check the approval confirmation checkbox
+          const approvalCheck = document.getElementById('reg-data-access-approved');
+          if (approvalCheck) approvalCheck.checked = true;
+
+          // Auto-fill School Name if empty
+          const nameInput = document.getElementById('reg-school-name');
+          if (nameInput && !nameInput.value.trim()) {
+            nameInput.value = `School Campus (${data.schoolId})`;
+          }
+
+          // Immediately update dynamic per-student subscription calculation
+          updateRegisterCalculatedAmount();
+
+          showToast(`Approval granted! Real ERP census verified: ${data.totalStudents.toLocaleString()} enrolled students.`, 'success');
+        }
+      } catch (err) {
+        showToast(`Approval Request failed: ${err.message}`, 'error');
+      } finally {
+        if (actionBtn) {
+          actionBtn.disabled = false;
+          actionBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Approval Request';
+        }
+      }
+    };
+
+    document.getElementById('btn-send-approval-request')?.addEventListener('click', handleSendApproval);
+    document.getElementById('btn-probe-erp')?.addEventListener('click', handleSendApproval);
+
+    // ------------------------------------------------------------------------
     // Register School Form Submission
+    // ------------------------------------------------------------------------
     const regForm = document.getElementById('form-register-school');
     const regSubmit = document.getElementById('btn-submit-register-school');
     if (regSubmit && regForm) {
       regSubmit.addEventListener('click', async (e) => {
         e.preventDefault();
 
-        const remoteSchoolId = document.getElementById('reg-remote-school-id')?.value.trim();
-        if (!remoteSchoolId) {
-          alert('Please enter the School ID from that school ERP.');
-          document.getElementById('reg-remote-school-id')?.focus();
+        const schoolId = document.getElementById('reg-school-id')?.value.trim();
+        const erpUrl = document.getElementById('reg-erp-url')?.value.trim();
+        if (!erpUrl) {
+          alert('Please enter the School ERP Base URL.');
+          document.getElementById('reg-erp-url')?.focus();
           return;
         }
 
         const isApproved = document.getElementById('reg-data-access-approved')?.checked;
         if (!isApproved) {
-          alert('Approval Required: You must verify the ERP handshake and check the data access approval box to authorize Central Command to ingest real data from this School ID.');
-          document.getElementById('reg-data-access-approved')?.focus();
+          alert('Approval Required: Please click "Send Approval Request" first to authorize data access with that school ERP.');
+          document.getElementById('btn-send-approval-request')?.focus();
           return;
         }
 
         const formData = new FormData(regForm);
         const body = Object.fromEntries(formData.entries());
+        body.school_id = schoolId;
+        body.code = schoolId;
+        body.remote_school_id = schoolId;
         body.data_access_approved = 1;
+        body.approval_status = 'APPROVED';
         if (body.price_per_student) body.price_per_student = parseFloat(body.price_per_student);
         if (body.initial_students) body.initial_students = parseInt(body.initial_students, 10);
         if (body.grace_period_days) body.grace_period_days = parseInt(body.grace_period_days, 10);
         body.auto_suspend_enabled = document.getElementById('reg-auto-suspend')?.checked ? 1 : 0;
 
         try {
-          showToast('Authorizing handshake and creating cryptographic bridge...', 'info');
+          showToast('Registering school and activating connector bridge...', 'info');
           const res = await api('/schools', {
             method: 'POST',
             body: JSON.stringify(body)
@@ -2843,13 +2944,22 @@ for cmd in commands:
           closeModal('modal-register-school');
           regForm.reset();
 
-          alert(
-            `School Registered Successfully!\n\n` +
-            `School ID: ${res.data.schoolId}\n` +
-            `API Key: ${res.data.apiKey}\n` +
-            `HMAC Secret: ${res.data.hmacSecret}\n\n` +
-            `IMPORTANT: Save these credentials now. The HMAC secret will never be displayed again.`
-          );
+          // Show Dedicated Credentials Success Modal
+          openModal('modal-credentials-success');
+          document.getElementById('succ-school-name').textContent = res.data.name;
+          document.getElementById('succ-school-id').textContent = res.data.schoolId;
+          document.getElementById('succ-api-key').textContent = res.data.apiKey;
+          document.getElementById('succ-hmac-secret').textContent = res.data.hmacSecret;
+          document.getElementById('succ-student-count').textContent = `${(res.data.initialStudents || 0).toLocaleString()} Students`;
+          document.getElementById('succ-calc-amount').textContent = `₹${(res.data.calculatedAmount || 0).toLocaleString()} / ${(res.data.billingCycle || 'yearly').toLowerCase()}`;
+
+          const snippet = 
+`# Remote School ERP Connector Configuration (.env)
+CENTRAL_ERP_URL=${window.location.origin}
+CENTRAL_SCHOOL_ID=${res.data.schoolId}
+CENTRAL_API_KEY=${res.data.apiKey}
+CENTRAL_HMAC_SECRET=${res.data.hmacSecret}`;
+          document.getElementById('succ-connector-snippet').value = snippet;
 
           await loadInitialData();
           renderSchoolsList();
@@ -2858,6 +2968,24 @@ for cmd in commands:
         }
       });
     }
+
+    // Success Modal Copy & Action Handlers
+    document.getElementById('btn-copy-succ-school-id')?.addEventListener('click', () => {
+      copyTextToClipboard(document.getElementById('succ-school-id')?.textContent, 'School ID');
+    });
+    document.getElementById('btn-copy-succ-api-key')?.addEventListener('click', () => {
+      copyTextToClipboard(document.getElementById('succ-api-key')?.textContent, 'API Key');
+    });
+    document.getElementById('btn-copy-succ-hmac-secret')?.addEventListener('click', () => {
+      copyTextToClipboard(document.getElementById('succ-hmac-secret')?.textContent, 'HMAC Secret');
+    });
+    document.getElementById('btn-copy-connector-snippet')?.addEventListener('click', () => {
+      copyTextToClipboard(document.getElementById('succ-connector-snippet')?.value, 'Connector Configuration');
+    });
+    document.getElementById('btn-done-credentials-success')?.addEventListener('click', () => {
+      closeModal('modal-credentials-success');
+      switchTab('schools');
+    });
 
     // Remote Command Modal Switcher
     const cmdTypeSelect = document.getElementById('cmd-type-select');
@@ -3026,6 +3154,9 @@ for cmd in commands:
     if (el) {
       el.classList.add('active');
       if (id === 'modal-register-school') {
+        if (typeof window.generateRegistrationCredentials === 'function') {
+          window.generateRegistrationCredentials();
+        }
         const evt = new Event('input', { bubbles: true });
         document.getElementById('reg-price-per-student')?.dispatchEvent(evt);
       }
