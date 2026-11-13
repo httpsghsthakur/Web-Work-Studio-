@@ -229,10 +229,12 @@
 
   <!-- Register School Modal -->
   <div class="modal-overlay" id="modal-register-school">
-    <div class="modal-card">
+    <div class="modal-card modal-card-lg">
       <div class="modal-header">
-        <div class="modal-title"><i class="fa-solid fa-school-flag" style="color: var(--accent-primary); margin-right: 0.5rem;"></i> Register New School ERP</div>
-        <button class="btn-icon modal-close-btn">&times;</button>
+        <div class="modal-title">
+          <i class="fa-solid fa-school-flag" style="color: var(--accent-primary); margin-right: 0.5rem;"></i> Register New School ERP
+        </div>
+        <button type="button" class="btn-icon modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
         <form id="form-register-school">
@@ -240,10 +242,10 @@
           <!-- 1. Auto-Generated School ID & Cryptographic Integration Keys -->
           <div style="background: var(--bg-card-header); border: 1px solid var(--border-main); border-radius: 8px; padding: 1.1rem; margin-bottom: 1.15rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
-              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--accent-primary);">
-                <i class="fa-solid fa-key"></i> Auto-Generated School ID & Integration Keys
+              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--accent-primary); font-size: 0.85rem;">
+                <i class="fa-solid fa-key"></i> 1. Auto-Generated School ID & Cryptographic Keys
               </label>
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-regenerate-credentials" title="Generate New School ID & Fresh Keys" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-regenerate-credentials" title="Generate New School ID & Fresh Keys" style="padding: 0.25rem 0.65rem; font-size: 0.75rem; font-weight: 600;">
                 <i class="fa-solid fa-arrows-rotate"></i> Regenerate Keys
               </button>
             </div>
@@ -253,30 +255,30 @@
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 0.75rem;">
               <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 0.75rem;">Generated School ID *</label>
+                <label class="form-label" style="font-size: 0.75rem; font-weight: 600;">Generated School ID *</label>
                 <div style="display: flex; gap: 0.35rem;">
-                  <input type="text" class="form-control" name="school_id" id="reg-school-id" readonly style="font-family: monospace; font-weight: 700; background: var(--bg-card); color: var(--accent-primary);">
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-school-id" title="Copy School ID" style="padding: 0 0.65rem;"><i class="fa-regular fa-copy"></i></button>
+                  <input type="text" class="form-control" name="school_id" id="reg-school-id" readonly style="font-family: monospace; font-weight: 700; font-size: 0.95rem; background: var(--bg-card); color: var(--accent-primary);">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-school-id" title="Copy School ID" style="padding: 0 0.75rem;"><i class="fa-regular fa-copy"></i></button>
                 </div>
                 <input type="hidden" name="code" id="reg-school-code">
                 <input type="hidden" name="remote_school_id" id="reg-remote-school-id">
               </div>
 
               <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 0.75rem;">API Key (Public Connector Key) *</label>
+                <label class="form-label" style="font-size: 0.75rem; font-weight: 600;">API Key (Public Connector Key) *</label>
                 <div style="display: flex; gap: 0.35rem;">
-                  <input type="text" class="form-control" name="api_key" id="reg-api-key" readonly style="font-family: monospace; font-size: 0.75rem; background: var(--bg-card);">
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-api-key" title="Copy API Key" style="padding: 0 0.65rem;"><i class="fa-regular fa-copy"></i></button>
+                  <input type="text" class="form-control" name="api_key" id="reg-api-key" readonly style="font-family: monospace; font-size: 0.78rem; background: var(--bg-card);">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-api-key" title="Copy API Key" style="padding: 0 0.75rem;"><i class="fa-regular fa-copy"></i></button>
                 </div>
               </div>
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 0.75rem;">Secret Key (HMAC Signature Token) *</label>
+              <label class="form-label" style="font-size: 0.75rem; font-weight: 600;">Secret Key (HMAC Signature Token) *</label>
               <div style="display: flex; gap: 0.35rem;">
-                <input type="password" class="form-control" name="hmac_secret" id="reg-hmac-secret" readonly style="font-family: monospace; font-size: 0.75rem; background: var(--bg-card);">
-                <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-hmac-visibility" title="Show/Hide Secret" style="padding: 0 0.65rem;"><i class="fa-regular fa-eye"></i></button>
-                <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-hmac-secret" title="Copy Secret Key" style="padding: 0 0.65rem;"><i class="fa-regular fa-copy"></i></button>
+                <input type="password" class="form-control" name="hmac_secret" id="reg-hmac-secret" readonly style="font-family: monospace; font-size: 0.78rem; background: var(--bg-card);">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-hmac-visibility" title="Show/Hide Secret" style="padding: 0 0.75rem;"><i class="fa-regular fa-eye"></i></button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-hmac-secret" title="Copy Secret Key" style="padding: 0 0.75rem;"><i class="fa-regular fa-copy"></i></button>
               </div>
             </div>
           </div>
@@ -284,22 +286,22 @@
           <!-- 2. Remote School ERP Connection & Send Approval Request -->
           <div style="background: var(--bg-card-header); border: 1px solid var(--border-main); border-radius: 8px; padding: 1.1rem; margin-bottom: 1.15rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--accent-primary);">
-                <i class="fa-solid fa-satellite-dish"></i> Remote ERP Connection & Approval Handshake
+              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--accent-primary); font-size: 0.85rem;">
+                <i class="fa-solid fa-satellite-dish"></i> 2. Remote ERP Connection & Approval Handshake
               </label>
               <span class="badge badge-trial" id="remote-probe-badge">
                 <i class="fa-solid fa-circle-question"></i> Awaiting Approval Request
               </span>
             </div>
 
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem; align-items: flex-end; margin-bottom: 0.75rem;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.85rem; align-items: flex-end; margin-bottom: 0.75rem;">
               <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">School ERP Base URL *</label>
+                <label class="form-label" style="font-size: 0.75rem; font-weight: 600;">School ERP Base URL *</label>
                 <input type="url" class="form-control" name="erp_url" id="reg-erp-url" required placeholder="https://myschool.schools-erp.cloud">
-                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">Web domain of that school's ERP</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">Live web domain of that school's ERP website</div>
               </div>
               <div>
-                <button type="button" class="btn btn-primary" id="btn-send-approval-request" style="width: 100%; padding: 0.55rem; font-weight: 700; font-size: 0.82rem; background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+                <button type="button" class="btn btn-primary" id="btn-send-approval-request" style="width: 100%; padding: 0.58rem 0.75rem; font-weight: 700; font-size: 0.82rem; background: linear-gradient(135deg, #2563eb, #1d4ed8); white-space: nowrap;">
                   <i class="fa-solid fa-paper-plane"></i> Send Approval Request
                 </button>
               </div>
@@ -338,70 +340,53 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-              <label class="form-label">School Name *</label>
-              <input type="text" class="form-control" name="name" id="reg-school-name" required placeholder="e.g. Cambridge Global Academy">
+          <!-- 3. School Details & Administration Contacts -->
+          <div style="background: var(--bg-card-header); border: 1px solid var(--border-main); border-radius: 8px; padding: 1.1rem; margin-bottom: 1.15rem;">
+            <label class="form-label" style="margin-bottom: 0.75rem; font-weight: 700; color: var(--accent-primary); font-size: 0.85rem;">
+              <i class="fa-solid fa-school"></i> 3. School Details & Administrative Contacts
+            </label>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.85rem; margin-bottom: 0.75rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">School Name *</label>
+                <input type="text" class="form-control" name="name" id="reg-school-name" required placeholder="e.g. Cambridge Global Academy">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">City *</label>
+                <input type="text" class="form-control" name="city" required placeholder="e.g. Pune">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">State *</label>
+                <input type="text" class="form-control" name="state" required placeholder="e.g. Maharashtra">
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">City *</label>
-              <input type="text" class="form-control" name="city" required placeholder="e.g. Pune">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.85rem; margin-bottom: 0.75rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Principal / Owner Name *</label>
+                <input type="text" class="form-control" name="owner_name" required placeholder="Dr. John Doe">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Owner Email *</label>
+                <input type="email" class="form-control" name="owner_email" required placeholder="owner@school.edu">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Owner Phone *</label>
+                <input type="tel" class="form-control" name="owner_phone" required placeholder="+91 98765 43210">
+              </div>
             </div>
-          </div>
-            <div class="form-group">
-              <label class="form-label">State *</label>
-              <input type="text" class="form-control" name="state" required placeholder="e.g. Maharashtra">
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Technical Admin Contact (Optional)</label>
+              <input type="text" class="form-control" name="tech_contact_name" placeholder="e.g. Rahul Sharma (IT Department)">
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-              <label class="form-label">Principal / Owner Name *</label>
-              <input type="text" class="form-control" name="owner_name" required placeholder="Dr. John Doe">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Owner Email *</label>
-              <input type="email" class="form-control" name="owner_email" required placeholder="owner@school.edu">
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-              <label class="form-label">Owner Phone *</label>
-              <input type="tel" class="form-control" name="owner_phone" required placeholder="+91 98765 43210">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Technical Admin Contact</label>
-              <input type="text" class="form-control" name="tech_contact_name" placeholder="IT Head Name">
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-              <label class="form-label">Subscription Plan *</label>
-              <select class="form-select" name="plan_id" id="reg-plan-select">
-                <option value="plan-starter">Starter Campus Edition (₹12,000/mo)</option>
-                <option value="plan-growth" selected>Growth Academy Pro (₹25,000/mo)</option>
-                <option value="plan-enterprise">Enterprise Global Campus (₹55,000/mo)</option>
-                <option value="plan-custom">Custom Mega-Campus (₹90,000/mo)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Billing Cycle *</label>
-              <select class="form-select" name="billing_cycle" id="reg-billing-cycle">
-                <option value="MONTHLY">Monthly</option>
-                <option value="QUARTERLY">Quarterly</option>
-                <option value="HALF_YEARLY">Half-Yearly</option>
-                <option value="YEARLY" selected>Yearly</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Per-Student Dynamic Pricing & Automatic Multiplier Section -->
-          <div style="background: var(--bg-card-header); border: 1px solid var(--border-main); border-radius: 8px; padding: 1rem; margin-bottom: 1.1rem;">
+          <!-- 4. Subscription Plan & Dynamic Student Multiplier -->
+          <div style="background: var(--bg-card-header); border: 1px solid var(--border-main); border-radius: 8px; padding: 1.1rem; margin-bottom: 1.15rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--accent-primary);">
-                <i class="fa-solid fa-calculator"></i> Pricing Model & Student Multiplier
+              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--accent-primary); font-size: 0.85rem;">
+                <i class="fa-solid fa-calculator"></i> 4. Subscription Plan & Student Multiplier
               </label>
               <div style="display: flex; gap: 0.75rem; font-size: 0.8rem;">
                 <label style="cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
@@ -413,45 +398,68 @@
               </div>
             </div>
 
-            <div id="per-student-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 0.75rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Subscription Plan Tier *</label>
+                <select class="form-select" name="plan_id" id="reg-plan-select">
+                  <option value="plan-starter">Starter Campus Edition (₹12,000/mo)</option>
+                  <option value="plan-growth" selected>Growth Academy Pro (₹25,000/mo)</option>
+                  <option value="plan-enterprise">Enterprise Global Campus (₹55,000/mo)</option>
+                  <option value="plan-custom">Custom Mega-Campus (₹90,000/mo)</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Billing Cycle *</label>
+                <select class="form-select" name="billing_cycle" id="reg-billing-cycle">
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="QUARTERLY">Quarterly</option>
+                  <option value="HALF_YEARLY">Half-Yearly</option>
+                  <option value="YEARLY" selected>Yearly</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="per-student-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 0.75rem;">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Plan Price Per Student (₹ / student / month) *</label>
                 <input type="number" class="form-control" name="price_per_student" id="reg-price-per-student" value="25.0" step="0.5" min="1" placeholder="e.g. 25">
               </div>
               <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Initial / Latest Students *</label>
+                <label class="form-label">Verified Enrolled Students *</label>
                 <input type="number" class="form-control" name="initial_students" id="reg-initial-students" value="500" min="1" placeholder="e.g. 500">
               </div>
             </div>
 
             <!-- Live Calculation Display -->
-            <div id="live-calculation-box" style="margin-top: 0.75rem; padding: 0.65rem 0.85rem; background: rgba(37,99,235,0.08); border: 1px dashed var(--accent-primary); border-radius: 6px; font-size: 0.825rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+            <div id="live-calculation-box" style="padding: 0.75rem 1rem; background: rgba(37,99,235,0.08); border: 1px dashed var(--accent-primary); border-radius: 6px; font-size: 0.825rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
               <div>
-                <span style="color: var(--text-muted); font-size: 0.75rem;">Formula:</span>
+                <span style="color: var(--text-muted); font-size: 0.75rem;">Dynamic Calculation:</span>
                 <strong id="calc-formula-text" style="color: var(--text-main); margin-left: 0.35rem; font-family: monospace;">500 students × ₹25/mo × 12 mos</strong>
               </div>
               <div style="text-align: right;">
                 <span style="color: var(--text-muted); font-size: 0.72rem; display: block;">Amount to Pay by School:</span>
-                <strong id="calc-total-amount" style="font-size: 1.1rem; color: #10b981;">₹1,50,000 / year</strong>
+                <strong id="calc-total-amount" style="font-size: 1.15rem; color: #10b981;">₹1,50,000 / year</strong>
               </div>
             </div>
-          </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-              <label class="form-label">Grace Period (Days)</label>
-              <input type="number" class="form-control" name="grace_period_days" value="7">
-            </div>
-            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
-              <input type="checkbox" name="auto_suspend_enabled" id="reg-auto-suspend" style="width: 16px; height: 16px;">
-              <label for="reg-auto-suspend" style="font-size: 0.8rem; cursor: pointer;">Enable Auto-Suspension after grace period</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; align-items: center;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Grace Period (Days)</label>
+                <input type="number" class="form-control" name="grace_period_days" value="7">
+              </div>
+              <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; gap: 0.5rem; margin-top: 1.25rem;">
+                <input type="checkbox" name="auto_suspend_enabled" id="reg-auto-suspend" style="width: 16px; height: 16px; cursor: pointer;">
+                <label for="reg-auto-suspend" style="font-size: 0.8rem; cursor: pointer; margin-bottom: 0;">Enable Auto-Suspension after grace period</label>
+              </div>
             </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary modal-close-btn">Cancel</button>
-        <button class="btn btn-primary" id="btn-submit-register-school">Register School & Save Credentials</button>
+        <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-submit-register-school">
+          <i class="fa-solid fa-plus"></i> Register School & Save Credentials
+        </button>
       </div>
     </div>
   </div>

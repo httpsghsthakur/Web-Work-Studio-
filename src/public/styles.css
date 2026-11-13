@@ -576,16 +576,17 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 1000;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.2s ease;
-  padding: 1rem;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
 }
 
 .modal-overlay.active {
@@ -596,13 +597,21 @@ body {
 .modal-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-main);
-  border-radius: 10px;
+  border-radius: 12px;
   width: 100%;
-  max-width: 600px;
-  box-shadow: var(--shadow-lg);
+  max-width: 640px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  max-height: min(92vh, 880px);
   overflow: hidden;
-  transform: scale(0.96);
-  transition: all 0.2s ease;
+  margin: auto;
+  transform: scale(0.97);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-card-lg {
+  max-width: 780px;
 }
 
 .modal-overlay.active .modal-card {
@@ -610,34 +619,61 @@ body {
 }
 
 .modal-header {
-  padding: 1.1rem 1.4rem;
+  padding: 1.15rem 1.5rem;
   background-color: var(--bg-card-header);
   border-bottom: 1px solid var(--border-main);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .modal-title {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-main);
+  display: flex;
+  align-items: center;
 }
 
 .modal-body {
-  padding: 1.4rem;
-  max-height: 75vh;
+  padding: 1.35rem 1.5rem;
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
-  padding: 1rem 1.4rem;
+  padding: 1rem 1.5rem;
   background-color: var(--bg-card-header);
   border-top: 1px solid var(--border-main);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 680px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  .modal-card {
+    max-height: 96vh;
+    border-radius: 8px;
+  }
+  .modal-card-lg {
+    max-width: 100%;
+  }
+  .modal-body {
+    padding: 1rem;
+  }
+  .modal-body [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+  .modal-footer {
+    padding: 0.75rem 1rem;
+  }
 }
 
 /* Form Controls */
