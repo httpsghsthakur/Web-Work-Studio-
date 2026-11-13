@@ -35,6 +35,12 @@ function initSchema() {
     if (!columns.includes('last_student_check_at')) {
       db.exec("ALTER TABLE schools ADD COLUMN last_student_check_at TEXT;");
     }
+    if (!columns.includes('remote_school_id')) {
+      db.exec("ALTER TABLE schools ADD COLUMN remote_school_id TEXT;");
+    }
+    if (!columns.includes('data_access_approved')) {
+      db.exec("ALTER TABLE schools ADD COLUMN data_access_approved INTEGER DEFAULT 1;");
+    }
 
     // Ensure 24h census reconciliation automation rule exists
     const existingRule = db.prepare("SELECT id FROM automation_rules WHERE code = 'RULE_24H_STUDENT_CENSUS_CHECK'").get();

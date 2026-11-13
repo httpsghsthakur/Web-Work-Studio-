@@ -236,20 +236,85 @@
       </div>
       <div class="modal-body">
         <form id="form-register-school">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-              <label class="form-label">School Name *</label>
-              <input type="text" class="form-control" name="name" required placeholder="e.g. Cambridge Global Academy">
+
+          <!-- 1. Remote School ERP Connection, School ID & Live Handshake -->
+          <div style="background: var(--bg-card-header); border: 1px solid var(--border-main); border-radius: 8px; padding: 1.1rem; margin-bottom: 1.15rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--accent-primary);">
+                <i class="fa-solid fa-satellite-dish"></i> Remote School ERP Connection & School ID
+              </label>
+              <span class="badge badge-trial" id="remote-probe-badge">
+                <i class="fa-solid fa-circle-question"></i> Awaiting Handshake
+              </span>
             </div>
-            <div class="form-group">
-              <label class="form-label">School Code (Unique identifier) *</label>
-              <input type="text" class="form-control" name="code" required placeholder="e.g. SCH-CAMBRIDGE">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">School ID (in that School's ERP) *</label>
+                <input type="text" class="form-control" name="remote_school_id" id="reg-remote-school-id" required placeholder="e.g. SCH-001 or TENANT-99">
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">Identifier inside that school's database</div>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">School ERP Base URL *</label>
+                <input type="url" class="form-control" name="erp_url" id="reg-erp-url" required placeholder="https://myschool.schools-erp.cloud">
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">Web domain of that school's ERP</div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem; align-items: flex-end;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Connector Handshake Token / Secret (Optional)</label>
+                <input type="password" class="form-control" name="erp_auth_token" id="reg-erp-token" placeholder="Optional connector secret key or API token">
+              </div>
+              <div>
+                <button type="button" class="btn btn-secondary" id="btn-probe-erp" style="width: 100%; padding: 0.55rem; font-weight: 600; font-size: 0.82rem;">
+                  <i class="fa-solid fa-bolt"></i> Probe & Get Real Data
+                </button>
+              </div>
+            </div>
+
+            <!-- Real Data Handshake Result & Authorization Approval Panel -->
+            <div id="erp-probe-result" style="display: none; margin-top: 0.9rem; padding: 0.85rem; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); border-radius: 6px; font-size: 0.825rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <div style="color: #10b981; font-weight: 700;">
+                  <i class="fa-solid fa-circle-check"></i> Real ERP Handshake Verified
+                </div>
+                <span id="probe-source-badge" class="badge badge-active" style="font-size: 0.68rem;">LIVE_DATA</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.8rem;">
+                <div style="background: var(--bg-card); padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid var(--border-main);">
+                  <span style="color: var(--text-muted); font-size: 0.7rem; display: block;">Real Enrolled Students:</span>
+                  <strong id="probe-students-count" style="color: var(--accent-primary); font-size: 1.05rem;">0</strong>
+                </div>
+                <div style="background: var(--bg-card); padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid var(--border-main);">
+                  <span style="color: var(--text-muted); font-size: 0.7rem; display: block;">Faculty & Staff:</span>
+                  <strong id="probe-faculty-count" style="font-size: 1.05rem;">0</strong>
+                </div>
+                <div style="background: var(--bg-card); padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid var(--border-main);">
+                  <span style="color: var(--text-muted); font-size: 0.7rem; display: block;">Daily Attendance:</span>
+                  <strong id="probe-attendance-rate" style="color: #10b981; font-size: 1.05rem;">0%</strong>
+                </div>
+              </div>
+
+              <!-- Explicit Data Ingestion Approval Checkbox -->
+              <div style="background: var(--bg-card); border: 1px dashed var(--accent-primary); padding: 0.75rem; border-radius: 6px; display: flex; align-items: flex-start; gap: 0.65rem;">
+                <input type="checkbox" name="data_access_approved" id="reg-data-access-approved" value="1" required style="width: 18px; height: 18px; margin-top: 2px; cursor: pointer;">
+                <label for="reg-data-access-approved" style="font-size: 0.8rem; cursor: pointer; line-height: 1.35; margin-bottom: 0;">
+                  <strong style="color: #ef4444;">Required Approval:</strong> I hereby approve Central Command to ingest and continuously synchronize real student census, faculty counts, and operational records from School ID <span id="probe-confirm-school-id" style="font-family: monospace; font-weight: 700; color: var(--accent-primary);">---</span> under the SaaS Master Service Agreement.
+                </label>
+              </div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">School ERP Base URL *</label>
-            <input type="url" class="form-control" name="erp_url" required placeholder="https://cambridge.schools-erp.cloud">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">School Name *</label>
+              <input type="text" class="form-control" name="name" id="reg-school-name" required placeholder="e.g. Cambridge Global Academy">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Central Code (Unique identifier) *</label>
+              <input type="text" class="form-control" name="code" id="reg-school-code" required placeholder="e.g. SCH-CAMBRIDGE">
+            </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">

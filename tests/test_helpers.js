@@ -22,23 +22,25 @@ function createTestSchool(id = `sch-test-${Date.now()}-${Math.floor(Math.random(
     health_status: 'HEALTHY',
     api_key: `key_test_${id}_${Date.now()}`,
     hmac_secret: `sec_test_${id}_${Date.now()}`,
+    remote_school_id: overrides.remote_school_id || `REMOTE-${id}`,
+    data_access_approved: 1,
     ...overrides
   };
 
   db.run(`
     INSERT INTO schools (
-      id, name, code, erp_url, city, state, country,
+      id, name, code, remote_school_id, data_access_approved, erp_url, city, state, country,
       owner_name, owner_email, owner_phone,
       plan_id, billing_cycle, custom_price, subscription_start, subscription_end,
       payment_status, status, health_status, api_key, hmac_secret
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, 1, ?, ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?
     )
   `,
-    school.id, school.name, school.code, school.erp_url, school.city, school.state, school.country,
+    school.id, school.name, school.code, school.remote_school_id, school.erp_url, school.city, school.state, school.country,
     school.owner_name, school.owner_email, school.owner_phone,
     school.plan_id, school.billing_cycle, school.custom_price, school.subscription_start, school.subscription_end,
     school.payment_status, school.status, school.health_status, school.api_key, school.hmac_secret

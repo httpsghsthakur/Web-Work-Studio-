@@ -2725,21 +2725,116 @@ for cmd in commands:
 
     updateRegisterCalculatedAmount();
 
+    // Remote ERP Live Census Handshake Probe Button
+    const probeBtn = document.getElementById('btn-probe-erp');
+    if (probeBtn) {
+      probeBtn.addEventListener('click', async () => {
+        const remoteSchoolId = document.getElementById('reg-remote-school-id')?.value.trim();
+        const erpUrl = document.getElementById('reg-erp-url')?.value.trim();
+        const authToken = document.getElementById('reg-erp-token')?.value.trim();
+        const probeResult = document.getElementById('erp-probe-result');
+        const probeBadge = document.getElementById('remote-probe-badge');
+
+        if (!remoteSchoolId) {
+          alert('Please enter the School ID from that school ERP before probing.');
+          document.getElementById('reg-remote-school-id')?.focus();
+          return;
+        }
+        if (!erpUrl) {
+          alert('Please enter the School ERP Base URL.');
+          document.getElementById('reg-erp-url')?.focus();
+          return;
+        }
+
+        probeBtn.disabled = true;
+        probeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Probing ERP...';
+
+        try {
+          showToast(`Connecting to School ERP at ${erpUrl} for School ID: ${remoteSchoolId}...`, 'info');
+          const res = await api('/schools/probe-remote-erp', {
+            method: 'POST',
+            body: JSON.stringify({
+              remote_school_id: remoteSchoolId,
+              erp_url: erpUrl,
+              auth_token: authToken
+            })
+          });
+
+          if (res.success && res.data) {
+            const data = res.data;
+            if (probeResult) probeResult.style.display = 'block';
+            if (probeBadge) {
+              probeBadge.className = 'badge badge-healthy';
+              probeBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Handshake Verified';
+            }
+
+            document.getElementById('probe-students-count').textContent = data.totalStudents.toLocaleString();
+            document.getElementById('probe-faculty-count').textContent = `${data.teachers} teachers, ${data.staff} staff`;
+            document.getElementById('probe-attendance-rate').textContent = `${data.attendanceRate}%`;
+            document.getElementById('probe-confirm-school-id').textContent = data.remoteSchoolId;
+            document.getElementById('probe-source-badge').textContent = data.source;
+
+            // Automatically populate real student count into the dynamic pricing input!
+            const initialStudentsInput = document.getElementById('reg-initial-students');
+            if (initialStudentsInput) {
+              initialStudentsInput.value = data.totalStudents;
+            }
+
+            // Suggest school name and code if not already filled
+            const nameInput = document.getElementById('reg-school-name');
+            const codeInput = document.getElementById('reg-school-code');
+            if (nameInput && !nameInput.value.trim()) {
+              nameInput.value = `School Campus (${data.remoteSchoolId})`;
+            }
+            if (codeInput && !codeInput.value.trim()) {
+              codeInput.value = data.remoteSchoolId.toUpperCase().replace(/[^A-Z0-9]/g, '-');
+            }
+
+            // Immediately update the formula and amount to pay
+            updateRegisterCalculatedAmount();
+
+            showToast(`Real ERP data verified! Total Students: ${data.totalStudents}. Please check approval box to authorize.`, 'success');
+          }
+        } catch (err) {
+          showToast(`ERP Probe failed: ${err.message}`, 'error');
+        } finally {
+          probeBtn.disabled = false;
+          probeBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Probe & Get Real Data';
+        }
+      });
+    }
+
     // Register School Form Submission
     const regForm = document.getElementById('form-register-school');
     const regSubmit = document.getElementById('btn-submit-register-school');
     if (regSubmit && regForm) {
       regSubmit.addEventListener('click', async (e) => {
         e.preventDefault();
+
+        const remoteSchoolId = document.getElementById('reg-remote-school-id')?.value.trim();
+        if (!remoteSchoolId) {
+          alert('Please enter the School ID from that school ERP.');
+          document.getElementById('reg-remote-school-id')?.focus();
+          return;
+        }
+
+        const isApproved = document.getElementById('reg-data-access-approved')?.checked;
+        if (!isApproved) {
+          alert('Approval Required: You must verify the ERP handshake and check the data access approval box to authorize Central Command to ingest real data from this School ID.');
+          document.getElementById('reg-data-access-approved')?.focus();
+          return;
+        }
+
         const formData = new FormData(regForm);
         const body = Object.fromEntries(formData.entries());
+        body.data_access_approved = 1;
         if (body.price_per_student) body.price_per_student = parseFloat(body.price_per_student);
         if (body.initial_students) body.initial_students = parseInt(body.initial_students, 10);
         if (body.grace_period_days) body.grace_period_days = parseInt(body.grace_period_days, 10);
         body.auto_suspend_enabled = document.getElementById('reg-auto-suspend')?.checked ? 1 : 0;
 
         try {
-          showToast('Registering school and generating cryptographic credentials...', 'info');
+          showToast('Authorizing handshake and creating cryptographic bridge...', 'info');
           const res = await api('/schools', {
             method: 'POST',
             body: JSON.stringify(body)

@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
 CREATE TABLE IF NOT EXISTS schools (
     id TEXT PRIMARY KEY,
     code TEXT UNIQUE NOT NULL,
+    remote_school_id TEXT,
+    data_access_approved INTEGER DEFAULT 1,
     name TEXT NOT NULL,
     logo_url TEXT,
     erp_url TEXT NOT NULL,
@@ -217,6 +219,8 @@ CREATE TABLE IF NOT EXISTS system_notifications (
 CREATE TABLE IF NOT EXISTS automation_rules (
     id TEXT PRIMARY KEY,
     code TEXT UNIQUE NOT NULL,
+    remote_school_id TEXT,
+    data_access_approved INTEGER DEFAULT 1,
     name TEXT NOT NULL,
     description TEXT,
     trigger_type TEXT NOT NULL,
