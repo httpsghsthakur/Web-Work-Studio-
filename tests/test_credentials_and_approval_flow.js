@@ -86,7 +86,27 @@ async function runApprovalFlowTests() {
     console.log(`✓ Verified credentials generation (School ID: ${createdTestSchoolId}, API Key: ${testGenApiKey.slice(0, 16)}...)`);
     console.log(`✓ Verified approval status APPROVED with live real census: ${verifiedStudents} students`);
     console.log(`✓ Verified dynamic subscription calculation: ${verifiedStudents} × ₹${pricePerStudent} × 12 = ₹${expectedPayable.toLocaleString('en-IN')}`);
-    console.log('✓ Auto-generated credentials, handshake & approval request flow tests PASSED');
+    // 4. Test School Deletion flow
+    db.transaction((tx) => {
+      tx.run('DELETE FROM payments WHERE school_id = ?', createdTestSchoolId);
+      tx.run('DELETE FROM invoices WHERE school_id = ?', createdTestSchoolId);
+      tx.run('DELETE FROM school_sync_metrics WHERE school_id = ?', createdTestSchoolId);
+      tx.run('DELETE FROM remote_commands WHERE school_id = ?', createdTestSchoolId);
+      tx.run('DELETE FROM security_events WHERE school_id = ?', createdTestSchoolId);
+      tx.run('DELETE FROM system_notifications WHERE school_id = ?', createdTestSchoolId);
+      tx.run('DELETE FROM erp_telemetry_history WHERE school_id = ?', createdTestSchoolId);
+      tx.run('DELETE FROM email_logs WHERE school_id = ?', createdTestSchoolId);
+      tx.run('DELETE FROM schools WHERE id = ?', createdTestSchoolId);
+    });
+
+    const deletedSchool = db.get('SELECT id FROM schools WHERE id = ?', createdTestSchoolId);
+    assert.strictEqual(deletedSchool, undefined, 'School must be completely deleted from database');
+    const deletedMetrics = db.get('SELECT id FROM school_sync_metrics WHERE school_id = ?', createdTestSchoolId);
+    assert.strictEqual(deletedMetrics, undefined, 'Metrics for deleted school must be deleted');
+    console.log(`✓ Verified permanent deletion of school ${createdTestSchoolId} and all child records`);
+    createdTestSchoolId = null;
+
+    console.log('✓ Auto-generated credentials, handshake, approval & deletion flow tests PASSED');
   } finally {
     if (createdTestSchoolId) {
       try {

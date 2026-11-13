@@ -803,4 +803,46 @@ router.post('/:id/check-students', authenticateToken, (req, res) => {
   }
 });
 
+// DELETE /api/v1/schools/:id - Permanently delete a school and all associated data
+router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'OPERATIONS_MANAGER']), (req, res) => {
+  try {
+    const school = db.get('SELECT id, name, code FROM schools WHERE id = ?', req.params.id);
+    if (!school) {
+      return res.status(404).json({ success: false, error: 'School not found' });
+    }
+
+    db.transaction((tx) => {
+      // 1. Delete associated records explicitly
+      tx.run('DELETE FROM payments WHERE school_id = ?', school.id);
+      tx.run('DELETE FROM invoices WHERE school_id = ?', school.id);
+      tx.run('DELETE FROM school_sync_metrics WHERE school_id = ?', school.id);
+      tx.run('DELETE FROM remote_commands WHERE school_id = ?', school.id);
+      tx.run('DELETE FROM security_events WHERE school_id = ?', school.id);
+      tx.run('DELETE FROM system_notifications WHERE school_id = ?', school.id);
+      tx.run('DELETE FROM erp_telemetry_history WHERE school_id = ?', school.id);
+      tx.run('DELETE FROM email_logs WHERE school_id = ?', school.id);
+
+      // 2. Delete the school entity
+      tx.run('DELETE FROM schools WHERE id = ?', school.id);
+    });
+
+    logAudit({
+      userId: req.user.id,
+      userEmail: req.user.email,
+      action: 'DELETE_SCHOOL',
+      targetType: 'SCHOOL',
+      targetId: school.id,
+      details: { schoolName: school.name, schoolCode: school.code },
+      ip: req.ip
+    });
+
+    res.json({
+      success: true,
+      message: `School "${school.name}" (${school.code}) and all related telemetry, invoices, and credentials have been permanently deleted.`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

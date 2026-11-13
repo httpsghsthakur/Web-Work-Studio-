@@ -1349,8 +1349,11 @@
             <button class="btn btn-secondary btn-sm btn-open-profile" data-id="${s.id}" title="Open Full Management Profile">
               <i class="fa-solid fa-address-card"></i> Profile
             </button>
-            <button class="btn ${s.status === 'ACTIVE' ? 'btn-danger' : 'btn-success'} btn-sm btn-quick-remote" data-id="${s.id}" data-status="${s.status}" title="Dispatch Remote Service Control Command">
+            <button class="btn ${s.status === 'ACTIVE' ? 'btn-warning' : 'btn-success'} btn-sm btn-quick-remote" data-id="${s.id}" data-status="${s.status}" title="Dispatch Remote Service Control Command">
               <i class="fa-solid ${s.status === 'ACTIVE' ? 'fa-ban' : 'fa-play'}"></i> ${s.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
+            </button>
+            <button class="btn btn-danger btn-sm btn-delete-school" data-id="${s.id}" data-name="${s.name}" title="Permanently Delete School">
+              <i class="fa-solid fa-trash"></i> Delete
             </button>
           </td>
         </tr>
@@ -1363,6 +1366,14 @@
         const id = btn.getAttribute('data-id');
         state.selectedSchoolId = id;
         switchTab('school-profile');
+      });
+    });
+
+    document.querySelectorAll('.btn-delete-school').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name');
+        await confirmAndDeleteSchool(id, name);
       });
     });
 
@@ -1389,6 +1400,31 @@
         openRemoteCommandModal(id, status === 'ACTIVE' ? 'SUSPEND_SERVICE' : 'REACTIVATE_SERVICE');
       });
     });
+  }
+
+  // School deletion helper with confirmation
+  async function confirmAndDeleteSchool(schoolId, schoolName) {
+    const confirmed = confirm(
+      `⚠️ PERMANENT DELETION WARNING:\n\n` +
+      `Are you sure you want to permanently delete "${schoolName}"?\n\n` +
+      `This will completely erase:\n` +
+      `• School registration & remote ERP connector settings\n` +
+      `• Generated API keys and HMAC secret tokens\n` +
+      `• All synchronized student & teacher census records\n` +
+      `• Invoices, payment ledgers, and telemetry history\n\n` +
+      `This action CANNOT be undone. Click OK to confirm deletion.`
+    );
+    if (!confirmed) return;
+
+    try {
+      showToast(`Deleting "${schoolName}" from Central Command...`, 'info');
+      const res = await api(`/schools/${schoolId}`, { method: 'DELETE' });
+      showToast(res.message, 'success');
+      await loadInitialData();
+      switchTab('schools');
+    } catch (err) {
+      showToast(`Failed to delete school: ${err.message}`, 'error');
+    }
   }
 
   // ==========================================================================
@@ -1465,8 +1501,11 @@
               <button class="btn btn-primary btn-sm" id="btn-profile-invoice" data-id="${school.id}">
                 <i class="fa-solid fa-file-invoice-dollar"></i> Issue Invoice
               </button>
-              <button class="btn ${school.status === 'ACTIVE' ? 'btn-danger' : 'btn-success'} btn-sm" id="btn-profile-remote" data-id="${school.id}" data-status="${school.status}">
+              <button class="btn ${school.status === 'ACTIVE' ? 'btn-warning' : 'btn-success'} btn-sm" id="btn-profile-remote" data-id="${school.id}" data-status="${school.status}">
                 <i class="fa-solid ${school.status === 'ACTIVE' ? 'fa-ban' : 'fa-play'}"></i> ${school.status === 'ACTIVE' ? 'Suspend ERP' : 'Reactivate ERP'}
+              </button>
+              <button class="btn btn-danger btn-sm" id="btn-profile-delete" data-id="${school.id}" data-name="${school.name}">
+                <i class="fa-solid fa-trash"></i> Delete School
               </button>
             </div>
           </div>
@@ -1836,6 +1875,10 @@
         } catch (e) {
           showToast(e.message, 'error');
         }
+      });
+
+      document.getElementById('btn-profile-delete')?.addEventListener('click', async () => {
+        await confirmAndDeleteSchool(school.id, school.name);
       });
 
       // Payment and Remind buttons in profile table
