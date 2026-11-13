@@ -1,14 +1,18 @@
 const assert = require('assert');
 const crypto = require('crypto');
 const db = require('../src/database/db');
+const { createTestSchool, deleteTestSchool } = require('./test_helpers');
 
 console.log('--- TEST SUITE 5: SUBSCRIPTION INVOICING & PAYMENT RECONCILIATION ---');
 
-const schoolId = 'sch-xavier-01';
+const schoolId = 'sch-test-inv';
+createTestSchool(schoolId);
+
 const invoiceId = `inv-test-${Date.now()}`;
 const invoiceNum = `INV-TEST-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 
-// 1. Generate Invoice (Subtotal ₹100,000 + 18% GST = ₹118,000)
+try {
+  // 1. Generate Invoice (Subtotal ₹100,000 + 18% GST = ₹118,000)
 const subtotal = 100000.00;
 const taxRate = 18.0;
 const taxAmount = (subtotal * taxRate) / 100;
@@ -64,4 +68,7 @@ assert.strictEqual(updatedSchool.payment_status, 'PAID');
 db.run('DELETE FROM payments WHERE invoice_id = ?', invoiceId);
 db.run('DELETE FROM invoices WHERE id = ?', invoiceId);
 
-console.log('✓ Commercial subscription invoicing & payment reconciliation tests PASSED');
+  console.log('✓ Commercial subscription invoicing & payment reconciliation tests PASSED');
+} finally {
+  deleteTestSchool(schoolId);
+}

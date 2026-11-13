@@ -1,14 +1,15 @@
 const assert = require('assert');
 const db = require('../src/database/db');
 const commandQueueService = require('../src/services/commandQueueService');
+const { createTestSchool, deleteTestSchool } = require('./test_helpers');
 
 console.log('--- TEST SUITE 3: MULTI-SCHOOL STRICT TENANT ISOLATION ---');
 
-const schoolA = db.get('SELECT * FROM schools WHERE id = ?', 'sch-xavier-01');
-const schoolB = db.get('SELECT * FROM schools WHERE id = ?', 'sch-oakridge-02');
-assert.ok(schoolA && schoolB, 'Both test schools must exist');
+const schoolA = createTestSchool('sch-tenant-a');
+const schoolB = createTestSchool('sch-tenant-b');
 
-// 1. Issue command explicitly for School A
+try {
+  // 1. Issue command explicitly for School A
 const cmdResult = commandQueueService.enqueueCommand({
   schoolId: schoolA.id,
   commandType: 'UPDATE_MODULES',
@@ -47,4 +48,8 @@ const metricsB = db.all('SELECT * FROM school_sync_metrics WHERE school_id = ?',
 metricsA.forEach(m => assert.strictEqual(m.school_id, schoolA.id));
 metricsB.forEach(m => assert.strictEqual(m.school_id, schoolB.id));
 
-console.log('✓ Strict multi-tenant isolation tests PASSED');
+  console.log('✓ Strict multi-tenant isolation tests PASSED');
+} finally {
+  deleteTestSchool('sch-tenant-a');
+  deleteTestSchool('sch-tenant-b');
+}

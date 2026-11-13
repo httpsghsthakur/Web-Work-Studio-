@@ -1,14 +1,25 @@
 const assert = require('assert');
 const db = require('../src/database/db');
 const commandQueueService = require('../src/services/commandQueueService');
+const { createTestSchool, deleteTestSchool } = require('./test_helpers');
 
 console.log('--- TEST SUITE 4: REMOTE SERVICE CONTROL (SUSPENSION & REACTIVATION) ---');
 
-const testSchoolId = 'sch-greenvalley-06';
+const testSchoolId = 'sch-test-remote';
+createTestSchool(testSchoolId, { status: 'ACTIVE' });
 
-// 1. Initial State: Must be ACTIVE
-const initialSchool = db.get('SELECT id, name, status FROM schools WHERE id = ?', testSchoolId);
-assert.strictEqual(initialSchool.status, 'ACTIVE', 'Initial status must be ACTIVE');
+// Add initial metric for student verification
+db.run(`
+  INSERT INTO school_sync_metrics (
+    id, school_id, total_students, active_students, inactive_students,
+    total_teachers, active_teachers, inactive_teachers, non_teaching_staff, sync_source
+  ) VALUES ('met-rc-test', ?, 1200, 1180, 20, 50, 48, 2, 15, 'TEST')
+`, testSchoolId);
+
+try {
+  // 1. Initial State: Must be ACTIVE
+  const initialSchool = db.get('SELECT id, name, status FROM schools WHERE id = ?', testSchoolId);
+  assert.strictEqual(initialSchool.status, 'ACTIVE', 'Initial status must be ACTIVE');
 
 // Verify student metrics count before suspension
 const studentMetricsBefore = db.get('SELECT total_students FROM school_sync_metrics WHERE school_id = ? ORDER BY sync_timestamp DESC LIMIT 1', testSchoolId);
@@ -79,4 +90,7 @@ const reactivatedSchool = db.get('SELECT id, status, suspension_reason FROM scho
 assert.strictEqual(reactivatedSchool.status, 'ACTIVE', 'School status must return to ACTIVE');
 assert.strictEqual(reactivatedSchool.suspension_reason, null, 'Suspension reason must be cleared');
 
-console.log('✓ Remote suspension, zero-data-loss guarantee & reactivation tests PASSED');
+  console.log('✓ Remote suspension, zero-data-loss guarantee & reactivation tests PASSED');
+} finally {
+  deleteTestSchool(testSchoolId);
+}

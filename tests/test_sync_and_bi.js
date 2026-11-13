@@ -1,14 +1,18 @@
 const assert = require('assert');
 const db = require('../src/database/db');
 const biAnalyticsService = require('../src/services/biAnalyticsService');
+const { createTestSchool, deleteTestSchool } = require('./test_helpers');
 
 console.log('--- TEST SUITE 6: DATA SYNCHRONIZATION, IDEMPOTENCY & BI ANALYTICS ---');
 
-const schoolId = 'sch-vanguard-04';
-const idempotencyKey = `idemp-test-${Date.now()}`;
+const schoolId = 'sch-test-bi-sync';
+createTestSchool(schoolId, { status: 'ACTIVE', custom_price: 300000, billing_cycle: 'YEARLY' });
 
-// 1. Ingest new synchronization record
+const idempotencyKey = `idemp-test-${Date.now()}`;
 const newMetricId = `met-test-${Date.now()}`;
+
+try {
+  // 1. Ingest new synchronization record
 db.run(`
   INSERT INTO school_sync_metrics (
     id, school_id, total_students, active_students, inactive_students,
@@ -42,4 +46,7 @@ assert.strictEqual(dashboard.overview.financial.arr, dashboard.overview.financia
 // Clean up test metric
 db.run('DELETE FROM school_sync_metrics WHERE id = ?', newMetricId);
 
-console.log('✓ Data synchronization, idempotency & BI metrics calculation tests PASSED');
+  console.log('✓ Data synchronization, idempotency & BI metrics calculation tests PASSED');
+} finally {
+  deleteTestSchool(schoolId);
+}

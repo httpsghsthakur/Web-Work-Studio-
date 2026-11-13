@@ -70,45 +70,134 @@
     setupNavigation();
     setupModals();
     setupGlobalSearch();
+    setupLoginForm();
 
-    // Authenticate with default Super Admin if not already logged in
-    await ensureAuth();
-
-    // Initial Load
-    await loadInitialData();
-    renderCurrentTab();
+    const isAuthenticated = await checkAuthSession();
+    if (isAuthenticated) {
+      await loadInitialData();
+      renderCurrentTab();
+    }
   }
 
-  // Auto-login or verify existing token
-  async function ensureAuth() {
+  // Authentication & Session Management
+  function showLoginView() {
+    const loginScreen = document.getElementById('login-screen');
+    const appShell = document.getElementById('app-shell');
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (appShell) appShell.style.display = 'none';
+  }
+
+  function showAppShell() {
+    const loginScreen = document.getElementById('login-screen');
+    const appShell = document.getElementById('app-shell');
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (appShell) appShell.style.display = 'flex';
+  }
+
+  async function checkAuthSession() {
     if (state.token) {
       try {
         const res = await api('/auth/me');
-        if (res.success) {
+        if (res.success && res.user) {
           state.currentUser = res.user;
           updateUserBadge();
-          return;
+          showAppShell();
+          return true;
         }
       } catch (e) {
         state.token = null;
         localStorage.removeItem('central_token');
       }
     }
+    showLoginView();
+    return false;
+  }
 
-    // Default auto-login as Super Admin for demonstration
-    try {
-      const loginRes = await api('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'admin@centralcommand.io', password: 'Admin@123456', mfaCode: '123456' })
+  function setupLoginForm() {
+    const form = document.getElementById('form-login');
+    const emailInput = document.getElementById('login-email');
+    const passInput = document.getElementById('login-password');
+    const mfaInput = document.getElementById('login-mfa');
+    const errAlert = document.getElementById('login-error-alert');
+    const errText = document.getElementById('login-error-text');
+    const submitBtn = document.getElementById('btn-submit-login');
+
+    // Quick fill helper pills for administrator accounts
+    document.querySelectorAll('.btn-quick-creds').forEach(b => {
+      b.addEventListener('click', () => {
+        if (emailInput) emailInput.value = b.getAttribute('data-email');
+        if (passInput) passInput.value = b.getAttribute('data-pass');
+        if (mfaInput) mfaInput.value = '123456';
+        if (errAlert) errAlert.style.display = 'none';
       });
-      if (loginRes.success) {
-        state.token = loginRes.token;
-        state.currentUser = loginRes.user;
-        localStorage.setItem('central_token', state.token);
-        updateUserBadge();
-      }
-    } catch (err) {
-      console.error('Failed default login', err);
+    });
+
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = emailInput?.value.trim();
+        const password = passInput?.value;
+        const mfaCode = mfaInput?.value.trim() || '123456';
+
+        if (!email || !password) {
+          if (errAlert && errText) {
+            errText.textContent = 'Please enter both administrator email and password';
+            errAlert.style.display = 'block';
+          }
+          return;
+        }
+
+        if (errAlert) errAlert.style.display = 'none';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authenticating...';
+        }
+
+        try {
+          const res = await api('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password, mfaCode })
+          });
+
+          if (res.success && res.token) {
+            state.token = res.token;
+            state.currentUser = res.user;
+            localStorage.setItem('central_token', state.token);
+            updateUserBadge();
+            showAppShell();
+            showToast(`Signed in successfully as ${res.user.fullName || res.user.email}`, 'success');
+            await loadInitialData();
+            renderCurrentTab();
+          } else {
+            throw new Error(res.error || 'Invalid credentials');
+          }
+        } catch (err) {
+          if (errAlert && errText) {
+            errText.textContent = err.message || 'Invalid administrator email or password';
+            errAlert.style.display = 'block';
+          }
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In to Central Command';
+          }
+        }
+      });
+    }
+
+    // Direct Logout Button in Topbar
+    const logoutBtn = document.getElementById('btn-topbar-logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        if (!confirm('Are you sure you want to sign out of Central ERP Command?')) return;
+        state.token = null;
+        state.currentUser = null;
+        localStorage.removeItem('central_token');
+        if (passInput) passInput.value = '';
+        if (mfaInput) mfaInput.value = '';
+        showLoginView();
+        showToast('You have been signed out.', 'info');
+      });
     }
   }
 
@@ -223,9 +312,13 @@
         state.notifications = notifsRes.data;
         const badge = document.getElementById('notifications-count-badge');
         const dot = document.getElementById('notif-dot');
-        if (badge) badge.textContent = notifsRes.unreadCount;
+        if (badge) badge.textContent = notifsRes.unreadCount || 0;
         if (dot) dot.style.display = notifsRes.unreadCount > 0 ? 'block' : 'none';
       }
+
+      // Update schools count badge in sidebar
+      const schoolsBadge = document.getElementById('schools-count-badge');
+      if (schoolsBadge) schoolsBadge.textContent = state.schools ? state.schools.length : 0;
 
       // Populate school select options in modals
       populateSchoolDropdowns();
@@ -237,9 +330,13 @@
   function populateSchoolDropdowns() {
     const invSelect = document.getElementById('inv-school-select');
     if (invSelect) {
-      invSelect.innerHTML = state.schools.map(s => `
-        <option value="${s.id}">${s.name} (${s.code}) - ${s.plan_name || 'Standard'}</option>
-      `).join('');
+      if (!state.schools || state.schools.length === 0) {
+        invSelect.innerHTML = '<option value="">No schools registered yet</option>';
+      } else {
+        invSelect.innerHTML = state.schools.map(s => `
+          <option value="${s.id}">${s.name} (${s.code}) - ${s.plan_name || 'Standard'}</option>
+        `).join('');
+      }
     }
   }
 
@@ -351,6 +448,23 @@
             </button>
           </div>
         </div>
+
+        ${overview.schools.total_schools === 0 ? `
+        <div style="background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(16,185,129,0.08)); border: 1px solid rgba(37,99,235,0.3); border-radius: 10px; padding: 1.5rem 1.75rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 1.25rem;">
+            <div style="width: 48px; height: 48px; border-radius: 10px; background: var(--accent-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0;">
+              <i class="fa-solid fa-rocket"></i>
+            </div>
+            <div>
+              <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem;">Clean Production Environment Ready</h3>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">All dummy placeholder data has been removed. Click <strong>Register School</strong> to onboard your first school ERP website with dynamic per-student pricing.</p>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-register-school')">
+            <i class="fa-solid fa-plus"></i> Register First School
+          </button>
+        </div>
+        ` : ''}
 
         <!-- Simulation Quick-Trigger Toolbar -->
         <div class="sim-toolbar">
@@ -914,7 +1028,16 @@
     if (!tbody) return;
 
     if (schools.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">No schools match the specified criteria</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 3.5rem 1.5rem;">
+        <div style="font-size: 2.25rem; color: var(--text-dim); margin-bottom: 0.75rem;"><i class="fa-solid fa-school-circle-xmark"></i></div>
+        <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-main); margin-bottom: 0.35rem;">No School ERPs Registered</div>
+        <div style="font-size: 0.85rem; max-width: 450px; margin: 0 auto 1.25rem; color: var(--text-muted);">
+          Connect and register your first independent school ERP website to begin tracking dynamic per-student subscriptions, telemetry health, and remote administration.
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-register-school')">
+          <i class="fa-solid fa-plus"></i> Register School Now
+        </button>
+      </td></tr>`;
       return;
     }
 
@@ -1751,72 +1874,91 @@
       const payTbody = document.getElementById('payments-tbody');
 
       if (invTbody && invRes.success) {
-        invTbody.innerHTML = invRes.data.map(i => `
-          <tr>
-            <td><strong>${i.invoice_number}</strong></td>
-            <td>
-              <strong>${i.school_name}</strong>
-              <div style="font-size: 0.7rem; color: var(--text-muted);">${i.school_code}</div>
-            </td>
-            <td><span class="badge badge-trial">${i.billing_cycle}</span></td>
-            <td style="font-size: 0.75rem;">${i.period_start} to ${i.period_end}</td>
-            <td>${i.issue_date}</td>
-            <td>${i.due_date}</td>
-            <td><strong>₹${i.total_amount.toLocaleString()}</strong></td>
-            <td style="color: ${i.balance_due > 0 ? '#ef4444' : '#10b981'}; font-weight: 700;">
-              ₹${i.balance_due.toLocaleString()}
-            </td>
-            <td>
-              <span class="badge ${i.status === 'PAID' ? 'badge-paid' : i.status === 'OVERDUE' ? 'badge-overdue' : 'badge-pending'}">
-                ${i.status}
-              </span>
-            </td>
-            <td style="text-align: right; white-space: nowrap;">
-              ${i.balance_due > 0 ? `
-                <button class="btn btn-success btn-sm btn-record-pay" data-id="${i.id}" data-num="${i.invoice_number}" data-balance="${i.balance_due}">
-                  <i class="fa-solid fa-dollar-sign"></i> Pay
-                </button>
-                <button class="btn btn-secondary btn-sm btn-remind-inv" data-id="${i.id}">
-                  <i class="fa-regular fa-paper-plane"></i> Remind
-                </button>
-              ` : '<span style="color: #10b981; font-size: 0.75rem;"><i class="fa-solid fa-check"></i> Settled</span>'}
-            </td>
-          </tr>
-        `).join('');
+        if (invRes.data.length === 0) {
+          invTbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 3rem 1.5rem;">
+            <div style="font-size: 2rem; color: var(--text-dim); margin-bottom: 0.5rem;"><i class="fa-solid fa-file-invoice"></i></div>
+            <div style="font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">No Invoices Generated Yet</div>
+            <div style="font-size: 0.85rem; margin-bottom: 1rem;">Once schools are onboarded, subscription invoices and renewals will be tracked here.</div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-generate-invoice')">
+              <i class="fa-solid fa-plus"></i> Generate Invoice
+            </button>
+          </td></tr>`;
+        } else {
+          invTbody.innerHTML = invRes.data.map(i => `
+            <tr>
+              <td><strong>${i.invoice_number}</strong></td>
+              <td>
+                <strong>${i.school_name}</strong>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">${i.school_code}</div>
+              </td>
+              <td><span class="badge badge-trial">${i.billing_cycle}</span></td>
+              <td style="font-size: 0.75rem;">${i.period_start} to ${i.period_end}</td>
+              <td>${i.issue_date}</td>
+              <td>${i.due_date}</td>
+              <td><strong>₹${i.total_amount.toLocaleString()}</strong></td>
+              <td style="color: ${i.balance_due > 0 ? '#ef4444' : '#10b981'}; font-weight: 700;">
+                ₹${i.balance_due.toLocaleString()}
+              </td>
+              <td>
+                <span class="badge ${i.status === 'PAID' ? 'badge-paid' : i.status === 'OVERDUE' ? 'badge-overdue' : 'badge-pending'}">
+                  ${i.status}
+                </span>
+              </td>
+              <td style="text-align: right; white-space: nowrap;">
+                ${i.balance_due > 0 ? `
+                  <button class="btn btn-success btn-sm btn-record-pay" data-id="${i.id}" data-num="${i.invoice_number}" data-balance="${i.balance_due}">
+                    <i class="fa-solid fa-dollar-sign"></i> Pay
+                  </button>
+                  <button class="btn btn-secondary btn-sm btn-remind-inv" data-id="${i.id}">
+                    <i class="fa-regular fa-paper-plane"></i> Remind
+                  </button>
+                ` : '<span style="color: #10b981; font-size: 0.75rem;"><i class="fa-solid fa-check"></i> Settled</span>'}
+              </td>
+            </tr>
+          `).join('');
 
-        // Attach payment and remind listeners
-        document.querySelectorAll('.btn-record-pay').forEach(b => {
-          b.addEventListener('click', () => {
-            openRecordPaymentModal(
-              b.getAttribute('data-id'),
-              b.getAttribute('data-num'),
-              b.getAttribute('data-balance')
-            );
+          // Attach payment and remind listeners
+          document.querySelectorAll('.btn-record-pay').forEach(b => {
+            b.addEventListener('click', () => {
+              openRecordPaymentModal(
+                b.getAttribute('data-id'),
+                b.getAttribute('data-num'),
+                b.getAttribute('data-balance')
+              );
+            });
           });
-        });
 
-        document.querySelectorAll('.btn-remind-inv').forEach(b => {
-          b.addEventListener('click', async () => {
-            const id = b.getAttribute('data-id');
-            const res = await api(`/invoices/${id}/remind`, { method: 'POST' });
-            showToast(res.message, 'success');
+          document.querySelectorAll('.btn-remind-inv').forEach(b => {
+            b.addEventListener('click', async () => {
+              const id = b.getAttribute('data-id');
+              const res = await api(`/invoices/${id}/remind`, { method: 'POST' });
+              showToast(res.message, 'success');
+            });
           });
-        });
+        }
       }
 
       if (payTbody && payRes.success) {
-        payTbody.innerHTML = payRes.data.map(p => `
-          <tr>
-            <td><strong>${p.payment_number}</strong></td>
-            <td>${p.school_name}</td>
-            <td><code style="font-size: 0.75rem;">${p.invoice_number || 'N/A'}</code></td>
-            <td style="font-weight: 700; color: #10b981;">₹${p.amount.toLocaleString()}</td>
-            <td>${p.payment_date}</td>
-            <td><span class="badge badge-trial">${p.payment_method}</span></td>
-            <td><code style="font-size: 0.75rem;">${p.transaction_reference}</code></td>
-            <td><span class="badge badge-healthy"><i class="fa-solid fa-check"></i> ${p.status}</span></td>
-          </tr>
-        `).join('');
+        if (payRes.data.length === 0) {
+          payTbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2.5rem 1.5rem;">
+            <div style="font-size: 1.8rem; color: var(--text-dim); margin-bottom: 0.5rem;"><i class="fa-solid fa-receipt"></i></div>
+            <div style="font-weight: 600; color: var(--text-main);">No Payment Transactions Recorded</div>
+            <div style="font-size: 0.85rem;">When subscription payments (wire, UPI, net banking) are settled, receipts will appear here.</div>
+          </td></tr>`;
+        } else {
+          payTbody.innerHTML = payRes.data.map(p => `
+            <tr>
+              <td><strong>${p.payment_number}</strong></td>
+              <td>${p.school_name}</td>
+              <td><code style="font-size: 0.75rem;">${p.invoice_number || 'N/A'}</code></td>
+              <td style="font-weight: 700; color: #10b981;">₹${p.amount.toLocaleString()}</td>
+              <td>${p.payment_date}</td>
+              <td><span class="badge badge-trial">${p.payment_method}</span></td>
+              <td><code style="font-size: 0.75rem;">${p.transaction_reference}</code></td>
+              <td><span class="badge badge-healthy"><i class="fa-solid fa-check"></i> ${p.status}</span></td>
+            </tr>
+          `).join('');
+        }
       }
 
     } catch (err) {
@@ -1847,7 +1989,7 @@
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label">Select Target School *</label>
               <select class="form-select" id="ctrl-school-select">
-                ${state.schools.map(s => `<option value="${s.id}">${s.name} (${s.status})</option>`).join('')}
+                ${state.schools.length > 0 ? state.schools.map(s => `<option value="${s.id}">${s.name} (${s.status})</option>`).join('') : '<option value="">No schools available</option>'}
               </select>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
@@ -1914,6 +2056,15 @@
     try {
       const res = await api('/remote-control/commands');
       if (!res.success) return;
+
+      if (res.data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2.5rem 1rem;">
+          <div style="font-size: 1.8rem; color: var(--text-dim); margin-bottom: 0.5rem;"><i class="fa-solid fa-satellite-dish"></i></div>
+          <div style="font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">No Remote Commands in Queue</div>
+          <div style="font-size: 0.85rem;">When suspension, reactivation, or module commands are dispatched, their delivery and execution logs appear here.</div>
+        </td></tr>`;
+        return;
+      }
 
       tbody.innerHTML = res.data.map(cmd => {
         const isPending = cmd.status === 'PENDING' || cmd.status === 'DELIVERED';
@@ -1986,43 +2137,56 @@
         </div>
       </div>
 
-      <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
-        ${state.schools.map(s => `
-          <div class="card">
-            <div class="card-header" style="background: var(--bg-card-header);">
-              <div>
-                <strong style="font-size: 0.95rem;">${s.name}</strong>
-                <div style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;">${s.erp_url}</div>
-              </div>
-              <span class="badge ${s.health_status === 'HEALTHY' ? 'badge-healthy' : 'badge-stale'}">
-                ${s.health_status}
-              </span>
-            </div>
-            <div class="card-body" style="font-size: 0.8rem;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
-                <span style="color: var(--text-muted);">Connector Version:</span>
-                <code>v1.4.2</code>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
-                <span style="color: var(--text-muted);">Last Heartbeat:</span>
-                <strong>${s.last_heartbeat_at ? formatTimeAgo(s.last_heartbeat_at) : 'Never'}</strong>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
-                <span style="color: var(--text-muted);">Last Sync Census:</span>
-                <strong>${s.last_sync_at ? formatTimeAgo(s.last_sync_at) : 'Never'}</strong>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
-                <span style="color: var(--text-muted);">Database Storage:</span>
-                <strong>${((s.storage_used_mb || 14000) / 1024).toFixed(1)} GB</strong>
-              </div>
-              <div style="display: flex; justify-content: space-between;">
-                <span style="color: var(--text-muted);">API Auth Protocol:</span>
-                <span class="badge badge-trial">HMAC-SHA256 (300s window)</span>
-              </div>
-            </div>
+      ${state.schools.length === 0 ? `
+        <div class="card" style="padding: 3.5rem 1.5rem; text-align: center; color: var(--text-muted);">
+          <div style="font-size: 2.2rem; color: var(--text-dim); margin-bottom: 0.6rem;"><i class="fa-solid fa-heart-pulse"></i></div>
+          <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-main); margin-bottom: 0.25rem;">No ERP Connectors Monitored</div>
+          <div style="font-size: 0.85rem; max-width: 440px; margin: 0 auto 1.25rem;">
+            When you deploy the Connector SDK on your school ERP servers, live CPU, memory, database size, and latency telemetry will appear here.
           </div>
-        `).join('')}
-      </div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-register-school')">
+            <i class="fa-solid fa-plus"></i> Register School Connector
+          </button>
+        </div>
+      ` : `
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+          ${state.schools.map(s => `
+            <div class="card">
+              <div class="card-header" style="background: var(--bg-card-header);">
+                <div>
+                  <strong style="font-size: 0.95rem;">${s.name}</strong>
+                  <div style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;">${s.erp_url}</div>
+                </div>
+                <span class="badge ${s.health_status === 'HEALTHY' ? 'badge-healthy' : 'badge-stale'}">
+                  ${s.health_status}
+                </span>
+              </div>
+              <div class="card-body" style="font-size: 0.8rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+                  <span style="color: var(--text-muted);">Connector Version:</span>
+                  <code>v1.4.2</code>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+                  <span style="color: var(--text-muted);">Last Heartbeat:</span>
+                  <strong>${s.last_heartbeat_at ? formatTimeAgo(s.last_heartbeat_at) : 'Never'}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+                  <span style="color: var(--text-muted);">Last Sync Census:</span>
+                  <strong>${s.last_sync_at ? formatTimeAgo(s.last_sync_at) : 'Never'}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+                  <span style="color: var(--text-muted);">Database Storage:</span>
+                  <strong>${((s.storage_used_mb || 14000) / 1024).toFixed(1)} GB</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">API Auth Protocol:</span>
+                  <span class="badge badge-trial">HMAC-SHA256 (300s window)</span>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `}
     `;
   }
 
@@ -2076,6 +2240,15 @@
       try {
         const res = await api(`/security/events${sev ? '?severity=' + sev : ''}`);
         if (!res.success) return;
+
+        if (res.data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 3rem 1.5rem;">
+            <div style="font-size: 2rem; color: #10b981; margin-bottom: 0.5rem;"><i class="fa-solid fa-shield-halved"></i></div>
+            <div style="font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Security Stream Clean</div>
+            <div style="font-size: 0.85rem;">No security threats, unauthorized access attempts, or HMAC mismatch alerts logged.</div>
+          </td></tr>`;
+          return;
+        }
 
         tbody.innerHTML = res.data.map(e => `
           <tr>

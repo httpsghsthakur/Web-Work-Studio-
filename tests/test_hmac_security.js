@@ -2,13 +2,14 @@ const assert = require('assert');
 const crypto = require('crypto');
 const db = require('../src/database/db');
 const { verifyHmacSignature } = require('../src/middleware/hmacAuth');
+const { createTestSchool, deleteTestSchool } = require('./test_helpers');
 
 console.log('--- TEST SUITE 2: CONNECTOR HMAC SECURITY & REPLAY PROTECTION ---');
 
-const school = db.get('SELECT * FROM schools WHERE id = ?', 'sch-xavier-01');
-assert.ok(school, 'School sch-xavier-01 must exist');
+const school = createTestSchool('sch-test-hmac');
 
-// 1. Generate Valid Request
+try {
+  // 1. Generate Valid Request
 const timestamp = Math.floor(Date.now() / 1000).toString();
 const body = { test_metric: 42 };
 const bodyString = JSON.stringify(body);
@@ -118,4 +119,7 @@ assert.ok(loggedTamper, 'Tamper event must be recorded in central security log')
 const loggedReplay = db.get("SELECT * FROM security_events WHERE event_type = 'REPLAY_ATTACK_DETECTED' AND school_id = ?", school.id);
 assert.ok(loggedReplay, 'Replay attack event must be recorded in central security log');
 
-console.log('✓ HMAC verification, tamper prevention & replay protection tests PASSED');
+  console.log('✓ HMAC verification, tamper prevention & replay protection tests PASSED');
+} finally {
+  deleteTestSchool(school.id);
+}

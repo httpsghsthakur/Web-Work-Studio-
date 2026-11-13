@@ -21,7 +21,71 @@
 </head>
 <body class="dark-mode">
 
-  <div class="app-container">
+  <!-- Real Dedicated Administrator Login Screen -->
+  <div id="login-screen" class="login-container">
+    <div class="login-card">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <div class="login-logo">
+          <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <h1 style="font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.35rem;">CENTRAL ERP COMMAND</h1>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Multi-School SaaS BI & Remote Administration</p>
+      </div>
+
+      <div id="login-error-alert" style="display: none; background: rgba(239,68,68,0.12); border: 1px solid #ef4444; color: #ef4444; padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1.25rem;">
+        <i class="fa-solid fa-triangle-exclamation" style="margin-right: 0.4rem;"></i>
+        <span id="login-error-text">Invalid administrator email or password</span>
+      </div>
+
+      <form id="form-login">
+        <div class="form-group" style="margin-bottom: 1.15rem;">
+          <label class="form-label" for="login-email">Administrator Email *</label>
+          <div style="position: relative;">
+            <i class="fa-regular fa-envelope" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 0.85rem;"></i>
+            <input type="email" id="login-email" class="form-control" style="padding-left: 2.35rem;" required placeholder="admin@centralcommand.io" autocomplete="username" autofocus>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.15rem;">
+          <label class="form-label" for="login-password">Master Password *</label>
+          <div style="position: relative;">
+            <i class="fa-solid fa-lock" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 0.85rem;"></i>
+            <input type="password" id="login-password" class="form-control" style="padding-left: 2.35rem;" required placeholder="••••••••••••" autocomplete="current-password">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label" for="login-mfa">Two-Factor Authentication (MFA)</label>
+          <div style="position: relative;">
+            <i class="fa-solid fa-shield-halved" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 0.85rem;"></i>
+            <input type="text" id="login-mfa" class="form-control" style="padding-left: 2.35rem;" placeholder="123456 (Default: 123456)" maxlength="6">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="btn-submit-login" style="width: 100%; padding: 0.75rem; font-weight: 600; font-size: 0.95rem; justify-content: center;">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In to Central Command
+        </button>
+      </form>
+
+      <!-- Quick Credentials Helper -->
+      <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-main); font-size: 0.78rem; color: var(--text-muted);">
+        <div style="margin-bottom: 0.6rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; font-size: 0.7rem;">Quick Fill Account:</div>
+        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary btn-sm btn-quick-creds" data-email="admin@centralcommand.io" data-pass="Admin@123456" style="font-size: 0.75rem;">
+            Super Admin
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm btn-quick-creds" data-email="ops@centralcommand.io" data-pass="Ops@123456" style="font-size: 0.75rem;">
+            Operations
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm btn-quick-creds" data-email="finance@centralcommand.io" data-pass="Finance@123456" style="font-size: 0.75rem;">
+            Finance
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container" id="app-shell" style="display: none;">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -41,7 +105,7 @@
         <li class="nav-item" data-tab="schools">
           <i class="fa-solid fa-school"></i>
           <span>Schools</span>
-          <span class="nav-badge" id="schools-count-badge" style="background: rgba(37,99,235,0.2); color: #60a5fa;">6</span>
+          <span class="nav-badge" id="schools-count-badge" style="background: rgba(37,99,235,0.2); color: #60a5fa;">0</span>
         </li>
         <li class="nav-item" data-tab="analytics">
           <i class="fa-solid fa-chart-line"></i>
@@ -56,7 +120,7 @@
         <li class="nav-item" data-tab="invoices">
           <i class="fa-solid fa-file-invoice-dollar"></i>
           <span>Invoices & Payments</span>
-          <span class="nav-badge" id="overdue-count-badge">2</span>
+          <span class="nav-badge" id="overdue-count-badge">0</span>
         </li>
 
         <li class="nav-section-title">REMOTE OPERATIONS</li>
@@ -77,7 +141,7 @@
         <li class="nav-item" data-tab="notifications">
           <i class="fa-solid fa-bell"></i>
           <span>Notifications</span>
-          <span class="nav-badge" id="notifications-count-badge">3</span>
+          <span class="nav-badge" id="notifications-count-badge">0</span>
         </li>
         <li class="nav-item" data-tab="reports">
           <i class="fa-solid fa-file-export"></i>
@@ -143,6 +207,12 @@
             </div>
             <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; color: var(--text-dim); margin-left: 0.25rem;"></i>
           </div>
+
+          <!-- Direct Sign Out Button -->
+          <button class="btn btn-secondary btn-sm" id="btn-topbar-logout" title="Sign Out of Central Command" style="display: flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.75rem;">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Logout</span>
+          </button>
         </div>
       </header>
 
